@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文本排版工具</title>
+<style>
+:root{
+  /* Apple 风格配色：中性灰底 + 系统蓝，克制、少阴影、圆角更大 */
+  --bg:#f2f2f7; --panel:#ffffff; --panel2:#fbfbfd;
+  --line:#e5e5ea; --line2:#f0f0f4;
+  --txt:#1c1c1e; --dim:#8e8e93; --dim2:#aeaeb2;
+  --brand:#007aff; --brand2:#0066d6; --brand-tint:#e8f1ff;
+  --ok:#34c759; --warn:#ff9500; --err:#ff3b30; --radius:10px;
+  --shadow-s:0 1px 2px rgba(0,0,0,.05);
+  --shadow-m:0 2px 10px rgba(0,0,0,.07);
+  --shadow-l:0 8px 30px rgba(0,0,0,.12);
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:-apple-system,"SF Pro SC","PingFang SC","Helvetica Neue",
+              "Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  font-size:13px;color:var(--txt);background:var(--bg);
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+
+/* ---------- 顶栏：毛玻璃 ---------- */
+header{
+  background:rgba(255,255,255,.82);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:.5px solid rgba(0,0,0,.1);
+  padding:11px 18px;display:flex;align-items:center;gap:11px;flex-shrink:0;
+  position:relative;z-index:5;
+}
+header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:-.2px}
+header .sub{color:var(--dim);font-size:12px;letter-spacing:-.1px}
+header .spacer{flex:1}
+.hbtn{
+  border:none;background:rgba(120,120,128,.12);border-radius:8px;
+  padding:6px 13px;cursor:pointer;color:var(--txt);font-size:12.5px;
+  transition:background .15s var(--ease),transform .1s var(--ease);
+}
+.hbtn:hover{background:rgba(120,120,128,.18)}
+.hbtn:active{transform:scale(.96)}
+
+/* ---------- 主体 ---------- */
+main{flex:1;display:flex;min-height:0;position:relative}
+.col-left{
+  width:var(--leftw,400px);min-width:260px;max-width:720px;flex-shrink:0;background:var(--panel);
+  border-right:.5px solid rgba(0,0,0,.09);display:flex;flex-direction:column;min-height:0;
+}
+/* 左栏与预览之间的拖拽分隔条 */
+.splitter{
+  position:absolute;top:0;bottom:0;width:11px;cursor:col-resize;z-index:20;
+  left:calc(var(--leftw,400px) - 5px);background:transparent;
+  transition:background .15s var(--ease);
+}
+.splitter:hover,.splitter.on{background:rgba(0,122,255,.28)}
+.splitter::after{
+  content:'';position:absolute;left:5px;top:50%;transform:translateY(-50%);
+  width:1px;height:28px;background:rgba(0,0,0,.16);border-radius:1px;
+}
+body{--ui-scale:1}
+/* 界面字号密度：所有左栏文字都乘 --ui-scale，密度切换才能真正生效。
+   注意：不能只给容器设 font-size —— 各元素自己有 font-size:12.5px 之类，
+   会覆盖继承值，所以这里逐个改写成 calc(... * var(--ui-scale))。 */
+.col-left .pane,
+.col-left .tabs,
+.col-left legend,
+.col-left .field>span:first-child,
+.col-left .fontline .fl-label,
+.col-left .note,
+.col-left .tab,
+.col-left .btn,
+.col-left .btn.ghost,
+.col-left select,
+.col-left input,
+.col-left .tagl,
+.col-left .row{font-size:calc(12.5px * var(--ui-scale))}
+.col-left legend{font-size:calc(12.5px * var(--ui-scale))}
+.col-left .fontline .fl-label{font-size:calc(12px * var(--ui-scale))}
+.col-left .note{font-size:calc(11.5px * var(--ui-scale))}
+.col-right{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--bg);min-width:0}
+
+/* ---------- 左栏：分段控件式标签 ---------- */
+.tabs{
+  display:flex;gap:2px;padding:8px 10px 0;flex-shrink:0;
+  border-bottom:.5px solid rgba(0,0,0,.09);background:var(--panel2);
+}
+.tab{
+  flex:1;text-align:center;padding:7px 4px 9px;cursor:pointer;color:var(--dim);
+  border-bottom:2px solid transparent;user-select:none;font-size:12.5px;
+  transition:color .15s var(--ease),border-color .15s var(--ease);
+  letter-spacing:-.1px;
+}
+.tab.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+.tab:hover:not(.on){color:var(--txt)}
+
+.pane{flex:1;overflow-y:auto;padding:14px;min-height:0}
+.pane.hide{display:none}
+.pane::-webkit-scrollbar{width:9px}
+.pane::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:5px;border:2px solid transparent;background-clip:padding-box}
+.pane::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.3);background-clip:padding-box}
+.pane::-webkit-scrollbar-track{background:transparent}
+
+.drop{
+  border:1.5px dashed #c7c7cc;border-radius:14px;padding:20px 12px;
+  text-align:center;color:var(--dim);background:var(--panel2);cursor:pointer;
+  transition:all .18s var(--ease);margin-bottom:10px;
+}
+.drop:hover,.drop.over{border-color:var(--brand);background:var(--brand-tint);color:var(--brand)}
+.drop .big{font-size:24px;display:block;margin-bottom:6px;opacity:.8}
+.drop .hint{font-size:11.5px;margin-top:5px;opacity:.8;line-height:1.5}
+
+textarea.src{
+  width:100%;min-height:210px;border:.5px solid rgba(0,0,0,.14);border-radius:12px;
+  padding:11px 12px;resize:vertical;line-height:1.65;outline:none;background:#fff;
+  font-family:Consolas,"SF Mono","Courier New",monospace;font-size:12.5px;
+  transition:box-shadow .15s var(--ease),border-color .15s var(--ease);
+}
+textarea.src:focus{border-color:var(--brand);box-shadow:0 0 0 3.5px rgba(0,122,255,.18)}
+
+.row{display:flex;align-items:center;gap:8px;margin:9px 0}
+.row.wrap{flex-wrap:wrap}
+.row label{color:var(--dim);flex-shrink:0}
+.grow{flex:1;min-width:0}
+
+.btn{
+  border:none;border-radius:11px;padding:11px 16px;cursor:pointer;font-weight:600;
+  background:var(--brand);color:#fff;transition:all .15s var(--ease);width:100%;
+  box-shadow:var(--shadow-s);letter-spacing:-.1px;
+}
+.btn:hover{background:var(--brand2);box-shadow:0 2px 8px rgba(0,122,255,.32)}
+.btn:active{transform:scale(.985)}
+.btn:disabled{background:#c7c7cc;box-shadow:none;cursor:not-allowed;transform:none}
+.btn.ghost{
+  background:rgba(120,120,128,.1);color:var(--txt);border:none;font-weight:500;
+  box-shadow:none;
+}
+.btn.ghost:hover{background:rgba(120,120,128,.17);box-shadow:none}
+.btn.ghost:active{transform:scale(.97)}
+.btn.sm{padding:6px 12px;width:auto;font-size:12.5px;border-radius:9px}
+
+input[type=text],input[type=number],select{
+  border:.5px solid rgba(0,0,0,.14);border-radius:9px;padding:6px 9px;outline:none;
+  background:#fff;width:100%;transition:box-shadow .15s var(--ease),border-color .15s var(--ease);
+  font-size:calc(12.5px * var(--ui-scale,1));
+  font-family:inherit;color:var(--txt);
+}
+input:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 3.5px rgba(0,122,255,.18)}
+input[type=number]{width:88px;font-variant-numeric:tabular-nums}
+select{
+  -webkit-appearance:none;appearance:none;padding-right:24px;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0h10L5 6z' fill='%238e8e93'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;
+}
+input[type=color]{width:38px;height:28px;padding:1px;border:.5px solid rgba(0,0,0,.14);border-radius:7px;background:#fff}
+input[type=range]{width:100%}
+input[type=checkbox]{width:15px;height:15px;accent-color:var(--brand);cursor:pointer}
+
+fieldset{
+  border:.5px solid rgba(0,0,0,.1);border-radius:12px;padding:11px 13px 13px;
+  margin:0 0 12px;background:#fff;box-shadow:var(--shadow-s);
+}
+legend{font-weight:600;color:var(--txt);padding:0 6px;font-size:12.5px;letter-spacing:-.1px}
+.field{display:flex;align-items:center;gap:8px;margin:7px 0}
+/* 标签宽度随左栏宽度伸缩（而不是写死 96px），左栏拉宽后输入框才跟着变宽 */
+.field>span:first-child{color:var(--dim);width:clamp(72px,26%,104px);flex-shrink:0;font-size:12.5px}
+.field.split>span:first-child{width:auto}
+/* 网格列宽：左栏 400px 时内容区约 334px，两列的最小宽度必须 ≤ 163px 才能排成两列，
+   否则 auto-fit 会塌成单列、把纵向空间全浪费掉。 */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px}
+.grid2 .field{margin:0}
+/* 两列布局里标签不能再占 96px，否则右边下拉框被挤到几乎看不见。
+   两列时标签自适应、不换行，下拉框吃掉剩余宽度并允许收缩。 */
+.grid2 .field{gap:6px;min-width:0}
+.grid2 .field>span:first-child{width:auto;white-space:nowrap;font-size:calc(11.5px * var(--ui-scale,1))}
+.grid2 .field>select,.grid2 .field>input{min-width:0;flex:1}
+
+/* 字体表：一行「标签 + 字体 + 字号」。
+   字体框与字号框都按比例伸缩（flex 比例 1.7 : 1），左栏拉宽时两个框一起变宽 —— 
+   之前字号框写死 104px，拉宽只剩字体框变大，观感不一致。 */
+.fontline{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.fontline .fl-label{width:70px;flex-shrink:0;color:var(--dim);font-size:12px}
+.fontline .fl-font{flex:1.7 1 0;min-width:0}
+.fontline .fl-size{flex:1 1 0;min-width:76px;padding-left:6px;padding-right:16px}
+/* 「规范 → 标题样式」用的同款单行布局，同样按比例伸缩 */
+.qline{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.qline .ql-label{width:64px;flex-shrink:0;color:var(--dim);font-size:calc(12px * var(--ui-scale,1))}
+.qline .ql-font{flex:1.7 1 0;min-width:0}
+.qline .ql-size{flex:1 1 0;min-width:76px;padding-left:6px;padding-right:16px}
+
+.note{color:var(--dim);font-size:11.5px;line-height:1.6;margin:6px 0}
+.warnbox{
+  background:#fff8eb;border:.5px solid #ffd60a;color:#8a5a00;border-radius:10px;
+  padding:9px 12px;font-size:12px;line-height:1.65;margin:8px 0;
+}
+.errbox{
+  background:#fff2f1;border:.5px solid #ffb3ad;color:#a1231c;border-radius:10px;
+  padding:9px 12px;font-size:12px;line-height:1.65;margin:8px 0;
+}
+.okbox{
+  background:#f0fbf2;border:.5px solid #a8e6b4;color:#1c6b2c;border-radius:10px;
+  padding:9px 12px;font-size:12px;line-height:1.65;margin:8px 0;
+}
+
+.stats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{
+  background:rgba(120,120,128,.12);border-radius:20px;padding:3px 10px;
+  font-size:11.5px;color:#3a3a3c;letter-spacing:-.1px;
+}
+.chip b{color:var(--brand);font-weight:600}
+
+/* ---------- 右栏预览：工具栏 ---------- */
+.ptool{
+  background:rgba(255,255,255,.86);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:.5px solid rgba(0,0,0,.1);padding:8px 16px;
+  display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;
+}
+.ptool .t{font-weight:600;letter-spacing:-.2px}
+.ptool .spacer{flex:1}
+
+/* 缩放：Apple 风格胶囊控件 */
+.zoomer{
+  display:flex;align-items:center;gap:1px;
+  background:rgba(120,120,128,.12);border-radius:9px;padding:2px;
+}
+.zoomer input[type=range]{
+  width:96px;height:20px;margin:0 4px;background:transparent;
+  -webkit-appearance:none;appearance:none;cursor:pointer;
+}
+.zoomer input[type=range]::-webkit-slider-runnable-track{
+  height:3px;border-radius:2px;background:#c9cfdb;
+}
+.zoomer input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+  background:#fff;border:.5px solid rgba(0,0,0,.12);margin-top:-5px;
+  box-shadow:0 1px 3px rgba(0,0,0,.22);transition:transform .12s;
+}
+.zoomer input[type=range]::-webkit-slider-thumb:active{transform:scale(1.15)}
+.zbtn{
+  border:none;background:transparent;color:#3b4a60;cursor:pointer;
+  width:24px;height:22px;border-radius:6px;font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center;transition:.12s;
+  font-weight:500;padding:0;
+}
+.zbtn:hover{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.zbtn:active{background:#e3e7ef}
+.zbtn.wide{width:auto;padding:0 8px;font-size:11.5px;letter-spacing:.2px}
+.zpct{
+  width:46px;border:none;background:#fff;border-radius:6px;
+  text-align:center;padding:3px 2px;font-size:11.5px;font-variant-numeric:tabular-nums;
+  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.1);outline:none;
+}
+.zpct:focus{box-shadow:inset 0 0 0 1.5px var(--brand)}
+.zpct::-webkit-outer-spin-button,.zpct::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.zpct{-moz-appearance:textfield}
+.zunit{color:var(--dim);font-size:11px;margin-right:5px}
+
+.view{
+  flex:1;overflow:auto;padding:24px;min-height:0;
+  background:#e8e8ed;
+  background-image:radial-gradient(circle at 50% 0%,#f0f0f5 0%,#e4e4ea 100%);
+}
+.blankhint{
+  max-width:21cm;margin:0 auto 14px;padding:9px 12px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;
+  color:#9a3412;font-size:calc(12px * var(--ui-scale,1));line-height:1.5;
+}
+.blankhint span{flex:1;min-width:180px}
+.blankhint b{color:#c2410c}
+.blankhint .btn{width:auto;flex-shrink:0;padding:5px 12px;font-size:calc(12px * var(--ui-scale,1));
+  border-radius:8px;background:#ea580c;box-shadow:none}
+.blankhint .btn:hover{background:#c2410c;box-shadow:none}
+/* 空格提示条（蓝色系，与空行的橙色区分） */
+.spacehint{
+  max-width:21cm;margin:0 auto 14px;padding:9px 12px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;
+  color:#1e40af;font-size:calc(12px * var(--ui-scale,1));line-height:1.5;
+}
+.spacehint span{flex:1;min-width:180px}
+.spacehint b{color:#1d4ed8}
+.spacehint .btn{width:auto;flex-shrink:0;padding:5px 12px;font-size:calc(12px * var(--ui-scale,1));
+  border-radius:8px;background:#2563eb;color:#fff;box-shadow:none}
+.spacehint .btn:hover{background:#1d4ed8;box-shadow:none}
+/* 预览工具栏里的字数/页数信息（紧跟在来源标签右侧，不占版面） */
+.pvstats{
+  display:flex;align-items:center;gap:12px;flex-wrap:nowrap;
+  padding:3px 10px;border-radius:8px;
+  background:rgba(120,120,128,.09);
+  color:var(--dim);font-size:calc(11.5px * var(--ui-scale,1));line-height:1.35;
+  white-space:nowrap;overflow:hidden;
+}
+.pvstats .psi{display:inline-flex;align-items:baseline;gap:4px;white-space:nowrap}
+.pvstats .psi i{font-style:normal;color:var(--dim);font-size:calc(11px * var(--ui-scale,1))}
+.pvstats .psi b{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+/* 「详情」做成可点的按钮（原来只是 title 悬停，用户点了没反应） */
+.pvstats .psmore{
+  border:none;background:transparent;color:var(--brand);cursor:pointer;
+  font-size:calc(11px * var(--ui-scale,1));font-family:inherit;padding:1px 2px;
+  border-radius:4px;transition:background .12s;white-space:nowrap;
+}
+.pvstats .psmore:hover{background:rgba(0,122,255,.1)}
+.pvstats .psmore:active{background:rgba(0,122,255,.18)}
+/* 空格高亮：预览里把空格显示成一个淡黄色方块，方便肉眼发现 */
+.doc.showspace .blk-body,.doc.showspace .blk-head,.doc.showspace .blk-sal,
+.doc.showspace .blk-title{white-space:pre-wrap}
+.doc.showspace .sp{background:#fde68a;border-radius:2px;
+  box-shadow:inset 0 0 0 1px #f59e0b}
+.doc.showspace .sp-tab{background:#bfdbfe;border-radius:2px;
+  box-shadow:inset 0 0 0 1px #3b82f6}
+.doc.showspace .sp-wide{background:#fecaca;border-radius:2px;
+  box-shadow:inset 0 0 0 1px #ef4444}
+.pageswrap{
+  /* 缩放容器：实际尺寸由 JS 按「自然尺寸 × 缩放比」设定，
+     里面的 .pages 用 transform:scale 视觉缩放（不改变排版宽度）。 */
+  position:relative;margin:0 auto;
+}
+.pages{
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  /* 缩放只用 transform:scale()，绝不用 CSS zoom —— zoom 会改变布局宽度，
+     导致文字在缩放时重新换行、每档缩放的断行位置都不一样；
+     transform 只做视觉缩放，排版结果在所有缩放级别完全一致。 */
+  position:absolute;top:0;left:0;
+  transform-origin:top left;
+  will-change:transform;
+}
+.page{
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08),0 6px 22px rgba(0,0,0,.09);
+  border-radius:2px;
+  /* 宽高由 ui.js 按纸张配置写内联样式（A4/A3/B5/16开/Letter），
+     这里的值只是没有内联样式时的兜底 */
+  width:21cm;min-height:29.7cm;flex-shrink:0;
+  padding:var(--padt) var(--padr) var(--padb) var(--padl);
+  position:relative;overflow:hidden;box-sizing:border-box;
+}
+.page .pnum{
+  position:absolute;right:9px;bottom:5px;font-size:9px;color:#c7c7cc;
+  font-variant-numeric:tabular-nums;user-select:none;letter-spacing:.2px;
+}
+.page .hdr{
+  /* 页眉距纸张上边缘 = header_distance（--hdrDist），不再写死 1.35cm */
+  position:absolute;left:var(--padl);right:var(--padr);
+  top:calc(var(--hdrDist,1.5cm) - .35cm);
+  font-size:.78em;color:#8e8e93;text-align:center;
+  border-bottom:.5px dashed #e5e5ea;padding-bottom:3px;
+}
+.page .ftr{
+  /* 页码距纸张下边缘 = footer_distance（--ftrDist，公文标准 1.75cm） */
+  position:absolute;left:var(--padl);right:var(--padr);
+  bottom:calc(var(--ftrDist,1.75cm) - .3cm);
+  font-size:.78em;color:#8e8e93;text-align:center;
+}
+.doc{line-height:1.65;color:#111;word-break:break-word}
+.doc .blk-title{font-weight:700}
+.doc .blk-head{font-weight:700;margin:.4em 0 .2em}
+.doc .blk-body{margin:.15em 0;text-align:justify}
+.doc .blk-cap{text-align:center;margin:.35em 0}
+.doc .blk-blank{margin:0}
+/* 跨页续排段：段落被分页切开后，下一页那半段不重复首行缩进（与 Word 一致） */
+.doc .cont{text-indent:0 !important}
+.doc table{border-collapse:collapse;width:100%;margin:.5em 0}
+.doc table td,.doc table th{border:1px solid #666;padding:3px 6px;font-size:.9em;vertical-align:top}
+.doc table th{background:#f2f5fa;font-weight:700;text-align:center}
+.doc img{max-width:100%;height:auto;display:block;margin:.4em auto}
+
+.empty{
+  color:var(--dim);text-align:center;margin:auto;line-height:2;
+}
+.empty .big{font-size:40px;opacity:.3;display:block;margin-bottom:6px}
+
+/* ---------- 状态栏 ---------- */
+footer{
+  background:rgba(255,255,255,.86);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  backdrop-filter:saturate(180%) blur(20px);
+  border-top:.5px solid rgba(0,0,0,.1);padding:5px 16px;
+  font-size:11.5px;color:var(--dim);display:flex;gap:14px;align-items:center;flex-shrink:0;
+}
+footer .dot{width:7px;height:7px;border-radius:50%;background:#c7c7cc;flex-shrink:0;transition:background .2s}
+footer .dot.ok{background:var(--ok)}
+footer .dot.err{background:var(--err)}
+footer .dot.busy{background:var(--warn);animation:pulse .9s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+/* ---------- 模态 ---------- */
+.mask{
+  position:fixed;inset:0;background:rgba(0,0,0,.32);display:none;
+  align-items:center;justify-content:center;z-index:50;padding:20px;
+  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
+  animation:fadeIn .16s var(--ease);
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.mask.on{display:flex}
+.modal{
+  background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:82vh;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.28),0 0 0 .5px rgba(0,0,0,.08);
+  animation:popIn .2s var(--ease);
+}
+@keyframes popIn{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:none}}
+.modal h3{margin:0;padding:15px 18px;border-bottom:.5px solid rgba(0,0,0,.1);font-size:14px;font-weight:600;letter-spacing:-.2px}
+.modal .body{padding:16px 18px;overflow-y:auto;flex:1}
+.modal .foot{padding:12px 18px;border-top:.5px solid rgba(0,0,0,.1);display:flex;gap:8px;justify-content:flex-end}
+.scheme{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:.5px solid rgba(0,0,0,.1);border-radius:10px;margin-bottom:7px;background:#fff;
+  transition:background .14s var(--ease),border-color .14s var(--ease);
+}
+.scheme:hover{border-color:rgba(0,122,255,.4);background:var(--brand-tint)}
+.scheme .nm{flex:1;font-weight:500}
+.scheme .nm small{color:var(--dim);font-weight:400;margin-left:6px}
+.tagl{font-size:11px;color:var(--dim)}
+/* 值 + 单位 的组合行：数值框占权重，单位下拉定宽，随左栏宽度一起伸缩 */
+.unitrow{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.unitrow input[type=number]{flex:1 1 0;min-width:0}
+.unitrow select{flex:0 1 auto;min-width:64px;max-width:110px}
+/* 单位后缀（cm / 磅 / 字符 / pt / % / 页）：和数字框贴在一起，说明这个数字的单位。
+   定宽 + 不收缩，避免左栏拖窄时单位被挤掉。 */
+.utag{
+  flex:0 0 auto;min-width:20px;text-align:left;
+  font-size:calc(11px * var(--ui-scale,1));color:var(--dim);white-space:nowrap;
+}
+/* 各级标题行距的一行：标签 + 规则下拉 + 数值 + 单位，全部在同一行。
+   少了这条 CSS 时 4 个子元素会按块级元素各自换行，每级标题吃掉三行高度。 */
+.hline{display:flex;align-items:center;gap:6px;margin-bottom:6px;min-width:0}
+.hline .hl-label{
+  flex:0 0 auto;width:clamp(52px,17%,64px);color:var(--dim);
+  font-size:calc(12px * var(--ui-scale,1));white-space:nowrap;
+}
+.hline .hl-rule{flex:0 1 auto;min-width:0;max-width:112px}
+.hline .unitrow{flex:1 1 0;min-width:0}
+.hline .hl-val{flex:1 1 0;min-width:36px}
+.hline .hl-unit{flex:0 1 auto;min-width:62px;max-width:96px}
+hr{border:none;border-top:.5px solid rgba(0,0,0,.08);margin:12px 0}
+.collapse-h{
+  cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;
+  font-weight:600;color:#3a3a3c;margin:14px 0 6px;letter-spacing:-.1px;
+}
+.collapse-h .arw{transition:transform .2s var(--ease);font-size:10px;color:var(--dim)}
+.collapse-h.off .arw{transform:rotate(-90deg)}
+.collapse-b.hide{display:none}
+kbd{
+  background:rgba(120,120,128,.12);border:.5px solid rgba(0,0,0,.1);border-radius:5px;
+  padding:1px 6px;font-size:11px;font-family:Consolas,"SF Mono",monospace;
+}
+
+/* ---------- 预设方案栏 ---------- */
+.presetbar{
+  display:flex;gap:8px;align-items:center;margin-bottom:12px;padding:11px;
+  background:var(--brand-tint);border:.5px solid rgba(0,122,255,.22);border-radius:12px;
+}
+.presetbar label{color:#0a5fbf;font-weight:600;font-size:12px}
+.presetbar select{flex:1;font-weight:600}
+
+/* 「当前使用哪一套」提示：把规范 / 我的方案的关系讲清楚，
+   避免用户以为两者会互相覆盖。 */
+.curconfig{
+  margin:-4px 0 10px;padding:9px 12px;border-radius:10px;
+  background:var(--ok-tint,#e9f9ee);border:.5px solid rgba(52,199,89,.3);
+  color:#146c2e;font-size:calc(12px*var(--ui-scale,1));line-height:1.55;
+}
+.curconfig b{color:#0d5223}
+.curconfig small{color:#3a7d4f;font-size:calc(11px*var(--ui-scale,1));line-height:1.5}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>文本排版工具</h1>
+  <span class="sub">无格式文本 → 规范 Word 文档</span>
+  <span class="spacer"></span>
+  <button class="hbtn" id="btnHelp">使用说明</button>
+  <button class="hbtn" id="btnAbout">关于</button>
+</header>
+
+<main>
+  <!-- ================= 左栏 ================= -->
+  <div class="col-left" id="colLeft">
+    <div class="tabs">
+      <div class="tab on" data-tab="input">① 输入</div>
+      <div class="tab" data-tab="preset">② 规范</div>
+      <div class="tab" data-tab="adv">③ 自定义</div>
+    </div>
+
+    <!-- ---------- 输入 ---------- -->
+    <div class="pane" id="pane-input">
+      <div class="drop" id="drop">
+        <span class="big">📄</span>
+        <div><b>点击选择文件</b> 或把文件拖到这里</div>
+        <div class="hint">支持 .txt .md .docx .rtf .html（.doc/.wps 需先另存为 .docx）</div>
+        <input type="file" id="file" multiple accept=".txt,.md,.markdown,.docx,.rtf,.html,.htm,.doc,.wps,.pdf" style="display:none">
+      </div>
+
+      <div class="row">
+        <label style="width:auto">或直接粘贴文本：</label>
+        <span class="grow"></span>
+        <button class="btn ghost sm" id="btnSample">填入示例</button>
+        <button class="btn ghost sm" id="btnClear">清空</button>
+      </div>
+      <textarea class="src" id="src" placeholder="把没有格式的文字粘贴到这里……&#10;&#10;工具会自动识别标题、层级、表格并与正文区分开。&#10;&#10;一、总体要求&#10;&#10;（一）指导思想&#10;&#10;以……为指导，……&#10;&#10;1. 具体措施&#10;&#10;第一段正文内容，自动首行缩进两个字。"></textarea>
+
+      <div id="fileInfo"></div>
+
+      <hr>
+      <div class="collapse-h" id="hRecognize">
+        <span class="arw">▼</span>识别选项
+      </div>
+      <div class="collapse-b" id="bRecognize">
+        <label class="field"><input type="checkbox" id="c_detect_headings" checked><span style="width:auto">识别标题层级（一、／（一）／1.／1.1）</span></label>
+        <label class="field"><input type="checkbox" id="c_detect_title" checked><span style="width:auto">自动识别主标题与副标题（第一段）</span></label>
+        <label class="field"><input type="checkbox" id="c_detect_tables" checked><span style="width:auto">识别表格（制表符 / 竖线分隔）</span></label>
+        <label class="field"><input type="checkbox" id="c_enable_attachment_formatting" checked><span style="width:auto">识别「附件／表／图」题注</span></label>
+        <label class="field"><input type="checkbox" id="c_strip_markdown" checked><span style="width:auto">剥离 Markdown 标记（**加粗**、# 等）</span></label>
+        <label class="field"><input type="checkbox" id="c_normalize_punctuation" checked><span style="width:auto">标点标准化（英文逗号→中文逗号等）</span></label>
+        <div class="field"><span>空行处理</span><select id="c_blank_line_mode"></select></div>
+        <div class="field"><span>空格处理</span><select id="c_space_mode"></select></div>
+        <label class="field"><input type="checkbox" id="c_space_highlight"><span style="width:auto">预览里高亮显示空格（不改文本）</span></label>
+      </div>
+
+      <hr>
+      <button class="btn" id="btnRun">一键排版 →  生成 Word</button>
+      <div class="note">生成的文件会下载到浏览器默认下载目录，不会联网、不会上传。</div>
+    </div>
+
+    <!-- ---------- 规范 ---------- -->
+    <div class="pane hide" id="pane-preset">
+      <div class="presetbar">
+        <label>规范方案</label>
+        <select id="presetSel"></select>
+      </div>
+      <div class="curconfig" id="curConfig"></div>
+      <div class="note" id="presetDesc"></div>
+
+      <fieldset>
+        <legend>快速微调</legend>
+        <div class="field"><span>正文字体</span><select id="q_body_font"></select></div>
+        <div class="field"><span>正文字号</span><select id="q_body_size"></select></div>
+        <div class="field"><span>行距</span><select id="q_line_spacing"></select></div>
+        <div class="field"><span>首行缩进</span>
+          <div class="unitrow"><input type="number" id="q_indent" min="0" max="8" step="0.5"><span class="utag">字符</span></div>
+        </div>
+        <div class="field"><span>段落间空行</span><select id="q_blank"></select></div>
+        <div class="field"><span>空格处理</span>
+          <div class="unitrow"><select id="q_space" style="flex:1;min-width:0"></select>
+            <button class="zbtn" id="q_space_hl" title="在预览里把空格标成色块（不改文本）">高亮</button>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>页边距（可分别调）</legend>
+        <div class="grid2">
+          <div class="field"><span>上边距</span>
+            <div class="unitrow"><input type="number" id="q_margin_top" min="0" max="8" step="0.05"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>下边距</span>
+            <div class="unitrow"><input type="number" id="q_margin_bottom" min="0" max="8" step="0.05"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>左边距</span>
+            <div class="unitrow"><input type="number" id="q_margin_left" min="0" max="8" step="0.05"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>右边距</span>
+            <div class="unitrow"><input type="number" id="q_margin_right" min="0" max="8" step="0.05"><span class="utag">cm</span></div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:2px">
+          <button class="btn ghost sm" id="btnMarginGbt" title="上 3.7 / 下 3.5 / 左 2.8 / 右 2.6 cm（GB/T 9704-2012）">公文标准</button>
+          <button class="btn ghost sm" id="btnMarginUniform" title="把上边距的值套用到四边">四边统一</button>
+        </div>
+        <div class="note" id="marginHint">版心 15.6 × 22.5 cm，每页 22 行 × 每行 28 字。</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>标题样式</legend>
+        <div class="qline"><span class="ql-label">主标题</span>
+          <select id="q_title_font" class="ql-font"></select>
+          <select id="q_title_size" class="ql-size"></select></div>
+        <div class="qline"><span class="ql-label">一级标题</span>
+          <select id="q_h1_font" class="ql-font"></select>
+          <select id="q_h1_size" class="ql-size"></select></div>
+        <div class="qline"><span class="ql-label">二级标题</span>
+          <select id="q_h2_font" class="ql-font"></select>
+          <select id="q_h2_size" class="ql-size"></select></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>页码与页眉</legend>
+        <div class="grid2">
+          <div class="field"><span>页码格式</span><select id="c_page_number_format"></select></div>
+          <div class="field"><span>页码位置</span><select id="c_page_number_position"></select></div>
+          <div class="field"><span>起始页码</span>
+            <div class="unitrow"><input type="number" id="c_page_number_start" min="1" value="1"><span class="utag">页</span></div>
+          </div>
+        </div>
+        <hr>
+        <label class="field"><input type="checkbox" id="c_enable_header"><span style="width:auto">添加页眉</span></label>
+        <div class="field"><span>页眉文字</span><input type="text" id="c_header_text" placeholder="如：XX 单位文件"></div>
+      </fieldset>
+    </div>
+
+    <!-- ---------- 自定义 ---------- -->
+    <div class="pane hide" id="pane-adv">
+      <div class="row">
+        <button class="btn ghost sm" id="btnSaveScheme">💾 存为我的方案</button>
+        <button class="btn ghost sm" id="btnManageScheme">📋 管理方案</button>
+        <button class="btn ghost sm" id="btnReset">↺ 恢复默认</button>
+      </div>
+      <div class="note">所有修改实时生效，预览会立刻更新。</div>
+
+      <fieldset>
+        <legend>页面设置</legend>
+        <div class="grid2">
+          <div class="field"><span>纸张</span><select data-cfg="paper_size" id="paperSize"></select></div>
+          <div class="field"><span>强制 A4</span>
+            <select data-cfg="force_a4">
+              <option value="true">是（始终 A4）</option>
+              <option value="false">否（用上面选的纸张）</option>
+            </select>
+          </div>
+          <div class="field"><span>上边距</span>
+            <div class="unitrow"><input type="number" step="0.05" data-cfg="margin_top"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>下边距</span>
+            <div class="unitrow"><input type="number" step="0.05" data-cfg="margin_bottom"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>左边距</span>
+            <div class="unitrow"><input type="number" step="0.05" data-cfg="margin_left"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>右边距</span>
+            <div class="unitrow"><input type="number" step="0.05" data-cfg="margin_right"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>页眉距</span>
+            <div class="unitrow"><input type="number" step="0.05" data-cfg="header_distance"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>页脚距</span>
+            <div class="unitrow"><input type="number" step="0.05" data-cfg="footer_distance"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>装订线</span>
+            <div class="unitrow"><input type="number" step="0.05" data-cfg="gutter"><span class="utag">cm</span></div>
+          </div>
+          <div class="field"><span>标题对齐</span>
+            <select data-cfg="title_align">
+              <option value="center">居中</option><option value="left">左对齐</option><option value="right">右对齐</option>
+            </select>
+          </div>
+          <div class="field"><span>正文对齐</span>
+            <select data-cfg="body_align">
+              <option value="both">两端对齐</option><option value="left">左对齐</option><option value="distribute">分散对齐</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="collapse-h" id="hFont"><span class="arw">▼</span>字体与字号（逐级）</div>
+      <div class="collapse-b" id="bFont">
+        <fieldset>
+          <div id="fontTable"></div>
+          <hr>
+          <div class="grid2">
+            <div class="field"><span>英文/数字字体</span><select data-cfg="english_font"></select></div>
+            <div class="field"><span>中文用英文字体</span>
+              <select data-cfg="use_custom_english_font">
+                <option value="true">使用上面的英文字体</option>
+                <option value="false">跟随各段中文字体</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hSpacing"><span class="arw">▼</span>行距与缩进</div>
+      <div class="collapse-b" id="bSpacing">
+        <fieldset>
+          <legend>正文行距</legend>
+          <div class="grid2">
+            <div class="field"><span>行距类型</span><select data-cfg="line_spacing_rule"></select></div>
+            <div class="field"><span>行距值</span>
+              <div class="unitrow">
+                <input type="number" step="0.05" data-cfg="line_spacing_value">
+                <select data-cfg="line_spacing_unit" id="lineSpacingUnit"></select>
+              </div>
+            </div>
+          </div>
+          <div class="note" id="lineSpacingHint">选「磅」时 28 就是固定 28 磅行高（公文标准）；选「倍」时 28 表示正文字号的 28 倍。</div>
+          <div class="field"><span>首行缩进</span>
+            <div class="unitrow"><input type="number" step="0.5" data-cfg="first_line_indent_chars"><span class="utag">字符</span></div>
+          </div>
+          <div class="field"><span>左缩进</span>
+            <div class="unitrow">
+              <input type="number" step="0.1" data-cfg="left_indent_value">
+              <select data-cfg="left_indent_unit"></select>
+            </div>
+          </div>
+          <div class="field"><span>右缩进</span>
+            <div class="unitrow">
+              <input type="number" step="0.1" data-cfg="right_indent_value">
+              <select data-cfg="right_indent_unit"></select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hHeadLine"><span class="arw">▼</span>各级标题行距</div>
+      <div class="collapse-b" id="bHeadLine">
+        <fieldset>
+          <div class="note">默认「跟随正文」＝与正文行距一致。需要单独控制时把某级改成固定值或倍率，数值跟单位分开选。</div>
+          <div id="headLineTable"></div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hHeadIndent"><span class="arw">▼</span>各级标题缩进</div>
+      <div class="collapse-b" id="bHeadIndent">
+        <fieldset>
+          <div class="note">按「字符」计，0 = 顶格。默认与正文一致缩进 2 字符，版面才对齐；习惯一级标题顶格就把「一级标题」改成 0。</div>
+          <div class="grid2">
+            <div class="field"><span>主标题</span>
+              <div class="unitrow"><input type="number" step="0.5" min="0" data-cfg="title_indent_chars"><span class="utag">字符</span></div>
+            </div>
+            <div class="field"><span>一级标题</span>
+              <div class="unitrow"><input type="number" step="0.5" min="0" data-cfg="h1_indent_chars"><span class="utag">字符</span></div>
+            </div>
+            <div class="field"><span>二级标题</span>
+              <div class="unitrow"><input type="number" step="0.5" min="0" data-cfg="h2_indent_chars"><span class="utag">字符</span></div>
+            </div>
+            <div class="field"><span>三级标题</span>
+              <div class="unitrow"><input type="number" step="0.5" min="0" data-cfg="h3_indent_chars"><span class="utag">字符</span></div>
+            </div>
+            <div class="field"><span>四级标题</span>
+              <div class="unitrow"><input type="number" step="0.5" min="0" data-cfg="h4_indent_chars"><span class="utag">字符</span></div>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hParaSpace"><span class="arw">▼</span>段前 / 段后间距</div>
+      <div class="collapse-b" id="bParaSpace">
+        <fieldset>
+          <div class="grid2">
+            <div class="field"><span>标题段前</span>
+              <div class="unitrow"><input type="number" step="0.5" data-cfg="title_space_before"><span class="utag">磅</span></div>
+            </div>
+            <div class="field"><span>标题段后</span>
+              <div class="unitrow"><input type="number" step="0.5" data-cfg="title_space_after"><span class="utag">磅</span></div>
+            </div>
+            <div class="field"><span>小标题段前</span>
+              <div class="unitrow"><input type="number" step="0.5" data-cfg="heading_space_before"><span class="utag">磅</span></div>
+            </div>
+            <div class="field"><span>小标题段后</span>
+              <div class="unitrow"><input type="number" step="0.5" data-cfg="heading_space_after"><span class="utag">磅</span></div>
+            </div>
+            <div class="field"><span>正文段前</span>
+              <div class="unitrow"><input type="number" step="0.5" data-cfg="body_space_before"><span class="utag">磅</span></div>
+            </div>
+            <div class="field"><span>正文段后</span>
+              <div class="unitrow"><input type="number" step="0.5" data-cfg="body_space_after"><span class="utag">磅</span></div>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hNumber"><span class="arw">▼</span>标题自动编号</div>
+      <div class="collapse-b" id="bNumber">
+        <fieldset>
+          <label class="field"><input type="checkbox" data-cfg="auto_numbering"><span style="width:auto">启用自动编号（会覆盖正文里手写的序号）</span></label>
+          <div class="field"><span>编号样式</span><select data-cfg="number_style"></select></div>
+          <div class="note">示例：一级「一、」→ 二级「（一）」→ 三级「1.」→ 四级「（1）」</div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hTable"><span class="arw">▼</span>表格</div>
+      <div class="collapse-b" id="bTable">
+        <fieldset>
+          <label class="field"><input type="checkbox" data-cfg="enable_table_formatting"><span style="width:auto">启用表格自动排版</span></label>
+          <div class="grid2">
+            <div class="field"><span>单元格字体</span><select data-cfg="table_font"></select></div>
+            <div class="field"><span>表头字体</span><select data-cfg="table_header_font"></select></div>
+            <div class="field"><span>单元格字号</span>
+              <div class="unitrow"><input type="number" step="0.5" data-cfg="table_size"><span class="utag">pt</span></div>
+            </div>
+            <div class="field"><span>表头字号</span>
+              <div class="unitrow"><input type="number" step="0.5" data-cfg="table_header_size"><span class="utag">pt</span></div>
+            </div>
+            <div class="field"><span>行高</span>
+              <div class="unitrow"><input type="number" step="0.05" data-cfg="table_row_height_cm"><span class="utag">cm</span></div>
+            </div>
+            <div class="field"><span>表格宽度</span>
+              <div class="unitrow"><input type="number" step="5" data-cfg="table_width_percent"><span class="utag">%</span></div>
+            </div>
+            <div class="field"><span>边框粗细</span>
+              <div class="unitrow"><input type="number" step="0.25" data-cfg="table_border_size_pt"><span class="utag">磅</span></div>
+            </div>
+            <div class="field"><span>表格行距</span>
+              <select data-cfg="table_line_spacing">
+                <option value="single">单倍</option><option value="1.5">1.5 倍</option><option value="2.0">2 倍</option>
+              </select>
+            </div>
+          </div>
+          <hr>
+          <label class="field"><input type="checkbox" data-cfg="table_header_bold"><span style="width:auto">表头加粗</span></label>
+          <label class="field"><input type="checkbox" data-cfg="table_smart_align"><span style="width:auto">智能对齐（数字居中、文字左对齐）</span></label>
+          <label class="field"><input type="checkbox" data-cfg="table_unified_borders"><span style="width:auto">统一边框</span></label>
+          <label class="field"><input type="checkbox" data-cfg="table_auto_col_width"><span style="width:auto">自动列宽（等分）</span></label>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hExtra"><span class="arw">▼</span>其他</div>
+      <div class="collapse-b" id="bExtra">
+        <fieldset>
+          <label class="field"><input type="checkbox" data-cfg="set_outline"><span style="width:auto">设置大纲级别（可在 Word 里生成导航目录）</span></label>
+          <label class="field"><input type="checkbox" data-cfg="add_page_break_before_h1"><span style="width:auto">每个一级标题前分页</span></label>
+          <hr>
+          <div class="field"><span>文档标题</span><input type="text" data-cfg="document_title" placeholder="写入文档属性"></div>
+          <div class="field"><span>作者</span><input type="text" data-cfg="document_author"></div>
+          <div class="field"><span>主题</span><input type="text" data-cfg="document_subject"></div>
+        </fieldset>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 右栏预览 ================= -->
+  <div class="splitter" id="splitter" title="拖动调整左栏宽度（双击收起 / 展开）"></div>
+  <div class="col-right">
+    <div class="ptool">
+      <span class="t">实时预览</span>
+      <span class="chip" id="chipPreset">党政机关公文格式</span>
+      <div class="pvstats" id="pvStats" style="display:none"></div>
+      <span class="spacer"></span>
+      <button class="zbtn wide" id="btnDensity" title="切换界面紧凑度">紧凑</button>
+      <div class="zoomer">
+        <button class="zbtn" id="zoomOut" title="缩小 1%（Shift+ 为 10%）">−</button>
+        <input type="range" id="zoom" min="30" max="200" step="1" value="80">
+        <button class="zbtn" id="zoomIn" title="放大 1%（Shift+ 为 10%）">+</button>
+        <input type="number" class="zpct" id="zoomPct" min="30" max="200" step="1" value="80"><span class="zunit">%</span>
+        <button class="zbtn wide" id="zoomFit" title="适应宽度">适应</button>
+      </div>
+    </div>
+    <div class="view" id="view">
+      <div class="blankhint" id="blankHint" style="display:none"></div>
+      <div class="spacehint" id="spaceHint" style="display:none"></div>
+      <div class="empty" id="emptyTip">
+        <span class="big">📝</span>
+        左侧粘贴文本或拖入文件<br>这里会立刻显示排版预览
+      </div>
+      <div class="pageswrap" id="pagesWrap" style="display:none">
+        <div class="pages" id="pages"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span class="dot" id="stDot"></span>
+  <span id="stText">就绪</span>
+  <span class="spacer" style="flex:1"></span>
+  <span id="stStats"></span>
+</footer>
+
+<!-- 模态框 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <h3 id="modalTitle">标题</h3>
+    <div class="body" id="modalBody"></div>
+    <div class="foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<script>
+/* __BUNDLE__ */
+</script>
+</body>
+</html>

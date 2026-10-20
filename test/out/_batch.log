@@ -1,0 +1,10 @@
+﻿
+e2e-pages exit=1
+e2e-layout exit=1
+e2e-blankhint exit=1
+e2e-zoomsame exit=1
+e2e-units exit=1
+e2e-headerfooter exit=1
+e2e-unitags exit=1
+e2e-configsrc exit=1
+e2e-features3 exit=1

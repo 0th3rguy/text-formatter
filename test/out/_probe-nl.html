@@ -1,0 +1,3940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文本排版工具</title>
+<style>
+:root{
+  --bg:#f4f6fa; --panel:#ffffff; --line:#e3e8f0; --line2:#eef2f8;
+  --txt:#1f2734; --dim:#6b7789; --brand:#2563eb; --brand2:#1d4ed8;
+  --ok:#059669; --warn:#d97706; --err:#dc2626; --radius:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Microsoft YaHei","PingFang SC","Segoe UI",system-ui,sans-serif;
+  font-size:13px;color:var(--txt);background:var(--bg);
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+
+/* ---------- 顶栏 ---------- */
+header{
+  background:var(--panel);border-bottom:1px solid var(--line);
+  padding:10px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.3px}
+header .sub{color:var(--dim);font-size:12px}
+header .spacer{flex:1}
+.hbtn{
+  border:1px solid var(--line);background:#fff;border-radius:7px;
+  padding:5px 12px;cursor:pointer;color:var(--dim);
+}
+.hbtn:hover{border-color:#c8d3e3;color:var(--txt)}
+
+/* ---------- 主体 ---------- */
+main{flex:1;display:flex;min-height:0}
+.col-left{
+  width:400px;min-width:340px;flex-shrink:0;background:var(--panel);
+  border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;
+}
+.col-right{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+
+/* ---------- 左栏 ---------- */
+.tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0}
+.tab{
+  flex:1;text-align:center;padding:9px 4px;cursor:pointer;color:var(--dim);
+  border-bottom:2px solid transparent;user-select:none;font-size:12.5px;
+}
+.tab.on{color:var(--brand);border-bottom-color:var(--brand);font-weight:600;background:#f8faff}
+.tab:hover{background:#f8faff}
+
+.pane{flex:1;overflow-y:auto;padding:14px;min-height:0}
+.pane.hide{display:none}
+.pane::-webkit-scrollbar{width:9px}
+.pane::-webkit-scrollbar-thumb{background:#cfd8e6;border-radius:5px}
+.pane::-webkit-scrollbar-track{background:transparent}
+
+.drop{
+  border:1.5px dashed #c3cfe2;border-radius:var(--radius);padding:18px 12px;
+  text-align:center;color:var(--dim);background:#fafcff;cursor:pointer;
+  transition:.15s;margin-bottom:10px;
+}
+.drop:hover,.drop.over{border-color:var(--brand);background:#f0f6ff;color:var(--brand)}
+.drop .big{font-size:22px;display:block;margin-bottom:5px;opacity:.7}
+.drop .hint{font-size:11.5px;margin-top:4px;opacity:.75}
+
+textarea.src{
+  width:100%;min-height:210px;border:1px solid var(--line);border-radius:var(--radius);
+  padding:10px;resize:vertical;line-height:1.65;outline:none;background:#fcfdff;
+  font-family:Consolas,"Courier New",monospace;font-size:12.5px;
+}
+textarea.src:focus{border-color:var(--brand);background:#fff}
+
+.row{display:flex;align-items:center;gap:8px;margin:9px 0}
+.row.wrap{flex-wrap:wrap}
+.row label{color:var(--dim);flex-shrink:0}
+.grow{flex:1;min-width:0}
+
+.btn{
+  border:none;border-radius:8px;padding:10px 16px;cursor:pointer;font-weight:600;
+  background:var(--brand);color:#fff;transition:.15s;width:100%;
+}
+.btn:hover{background:var(--brand2)}
+.btn:disabled{background:#c4cddb;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--txt);border:1px solid var(--line);font-weight:500}
+.btn.ghost:hover{background:#f7f9fd;border-color:#c8d3e3}
+.btn.sm{padding:6px 12px;width:auto;font-size:12.5px}
+
+input[type=text],input[type=number],select{
+  border:1px solid var(--line);border-radius:7px;padding:6px 8px;outline:none;
+  background:#fff;width:100%;
+}
+input:focus,select:focus{border-color:var(--brand)}
+input[type=number]{width:88px}
+input[type=color]{width:38px;height:28px;padding:1px;border:1px solid var(--line);border-radius:6px;background:#fff}
+input[type=range]{width:100%}
+input[type=checkbox]{width:15px;height:15px;accent-color:var(--brand);cursor:pointer}
+
+fieldset{
+  border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px 12px;
+  margin:0 0 12px;background:#fff;
+}
+legend{font-weight:600;color:var(--txt);padding:0 6px;font-size:12.5px}
+.field{display:flex;align-items:center;gap:8px;margin:7px 0}
+.field>span:first-child{color:var(--dim);width:96px;flex-shrink:0;font-size:12.5px}
+.field.split>span:first-child{width:auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid2 .field{margin:0}
+
+.presetbar{
+  display:flex;gap:8px;align-items:center;margin-bottom:12px;padding:10px;
+  background:linear-gradient(180deg,#f7faff,#f1f6ff);border:1px solid #dbe6fb;border-radius:var(--radius);
+}
+.presetbar select{flex:1;font-weight:600}
+
+.note{color:var(--dim);font-size:11.5px;line-height:1.6;margin:6px 0}
+.warnbox{
+  background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;
+  padding:8px 11px;font-size:12px;line-height:1.65;margin:8px 0;
+}
+.errbox{
+  background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;
+  padding:8px 11px;font-size:12px;line-height:1.65;margin:8px 0;
+}
+.okbox{
+  background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;
+  padding:8px 11px;font-size:12px;line-height:1.65;margin:8px 0;
+}
+
+.stats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{
+  background:#eef3fb;border-radius:20px;padding:3px 10px;font-size:11.5px;color:#3b4a60;
+}
+.chip b{color:var(--brand);font-weight:600}
+
+/* ---------- 右栏预览 ---------- */
+.ptool{
+  background:var(--panel);border-bottom:1px solid var(--line);padding:8px 14px;
+  display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;
+}
+.ptool .t{font-weight:600}
+.ptool .spacer{flex:1}
+.zoomer{display:flex;align-items:center;gap:5px;color:var(--dim);font-size:12px}
+.zoomer input{width:110px}
+
+.view{
+  flex:1;overflow:auto;padding:22px;display:flex;justify-content:center;
+  min-height:0;background:#e9edf4;
+}
+.page{
+  background:#fff;box-shadow:0 2px 14px rgba(28,45,74,.16);
+  width:21cm;min-height:29.7cm;flex-shrink:0;transform-origin:top center;
+  padding:var(--padt) var(--padr) var(--padb) var(--padl);
+  position:relative;overflow:hidden;
+}
+.page .hdr{
+  position:absolute;left:var(--padl);right:var(--padr);
+  top:calc(var(--padt) - 1.35cm);
+  font-size:.78em;color:#8a94a6;text-align:center;border-bottom:1px dashed #e6ebf3;padding-bottom:3px;
+}
+.page .ftr{
+  position:absolute;left:var(--padl);right:var(--padr);
+  bottom:calc(var(--padb) - 1.1cm);
+  font-size:.78em;color:#8a94a6;text-align:center;
+}
+.doc{line-height:1.65;color:#111;word-break:break-word}
+.doc .blk-title{font-weight:700}
+.doc .blk-head{font-weight:700;margin:.4em 0 .2em}
+.doc .blk-body{margin:.15em 0;text-align:justify}
+.doc .blk-cap{text-align:center;margin:.35em 0}
+.doc .blk-blank{height:1em}
+.doc table{border-collapse:collapse;width:100%;margin:.5em 0}
+.doc table td,.doc table th{border:1px solid #666;padding:3px 6px;font-size:.9em;vertical-align:top}
+.doc table th{background:#f2f5fa;font-weight:700;text-align:center}
+.doc img{max-width:100%;height:auto;display:block;margin:.4em auto}
+
+.empty{
+  color:var(--dim);text-align:center;margin:auto;line-height:2;
+}
+.empty .big{font-size:38px;opacity:.35;display:block}
+
+/* ---------- 状态栏 ---------- */
+footer{
+  background:var(--panel);border-top:1px solid var(--line);padding:5px 14px;
+  font-size:11.5px;color:var(--dim);display:flex;gap:14px;align-items:center;flex-shrink:0;
+}
+footer .dot{width:7px;height:7px;border-radius:50%;background:#c4cddb;flex-shrink:0}
+footer .dot.ok{background:var(--ok)}
+footer .dot.err{background:var(--err)}
+footer .dot.busy{background:var(--warn);animation:pulse .9s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+/* ---------- 模态 ---------- */
+.mask{
+  position:fixed;inset:0;background:rgba(20,30,48,.42);display:none;
+  align-items:center;justify-content:center;z-index:50;padding:20px;
+}
+.mask.on{display:flex}
+.modal{
+  background:#fff;border-radius:12px;max-width:640px;width:100%;max-height:82vh;
+  display:flex;flex-direction:column;overflow:hidden;box-shadow:0 14px 48px rgba(10,20,40,.3);
+}
+.modal h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:14px}
+.modal .body{padding:16px 18px;overflow-y:auto;flex:1}
+.modal .foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+.scheme{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);
+  border-radius:8px;margin-bottom:7px;background:#fff;
+}
+.scheme:hover{border-color:#c8d3e3;background:#fafcff}
+.scheme .nm{flex:1;font-weight:500}
+.scheme .nm small{color:var(--dim);font-weight:400;margin-left:6px}
+.tagl{font-size:11px;color:var(--dim)}
+hr{border:none;border-top:1px solid var(--line2);margin:12px 0}
+.collapse-h{
+  cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;
+  font-weight:600;color:#3b4a60;margin:14px 0 6px;
+}
+.collapse-h .arw{transition:.2s;font-size:10px;color:var(--dim)}
+.collapse-h.off .arw{transform:rotate(-90deg)}
+.collapse-b.hide{display:none}
+kbd{background:#eef2f8;border:1px solid #dbe3ee;border-radius:4px;padding:0 5px;font-size:11px;font-family:Consolas,monospace}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>文本排版工具</h1>
+  <span class="sub">无格式文本 → 规范 Word 文档</span>
+  <span class="spacer"></span>
+  <button class="hbtn" id="btnHelp">使用说明</button>
+  <button class="hbtn" id="btnAbout">关于</button>
+</header>
+
+<main>
+  <!-- ================= 左栏 ================= -->
+  <div class="col-left">
+    <div class="tabs">
+      <div class="tab on" data-tab="input">① 输入</div>
+      <div class="tab" data-tab="preset">② 规范</div>
+      <div class="tab" data-tab="adv">③ 自定义</div>
+    </div>
+
+    <!-- ---------- 输入 ---------- -->
+    <div class="pane" id="pane-input">
+      <div class="drop" id="drop">
+        <span class="big">📄</span>
+        <div><b>点击选择文件</b> 或把文件拖到这里</div>
+        <div class="hint">支持 .txt .md .docx .rtf .html（.doc/.wps 需先另存为 .docx）</div>
+        <input type="file" id="file" multiple accept=".txt,.md,.markdown,.docx,.rtf,.html,.htm,.doc,.wps,.pdf" style="display:none">
+      </div>
+
+      <div class="row">
+        <label style="width:auto">或直接粘贴文本：</label>
+        <span class="grow"></span>
+        <button class="btn ghost sm" id="btnSample">填入示例</button>
+        <button class="btn ghost sm" id="btnClear">清空</button>
+      </div>
+      <textarea class="src" id="src" placeholder="把没有格式的文字粘贴到这里……&#10;&#10;工具会自动识别标题、层级、表格并与正文区分开。&#10;&#10;一、总体要求&#10;&#10;（一）指导思想&#10;&#10;以……为指导，……&#10;&#10;1. 具体措施&#10;&#10;第一段正文内容，自动首行缩进两个字。"></textarea>
+
+      <div id="fileInfo"></div>
+
+      <hr>
+      <div class="collapse-h" id="hRecognize">
+        <span class="arw">▼</span>识别选项
+      </div>
+      <div class="collapse-b" id="bRecognize">
+        <label class="field"><input type="checkbox" id="c_detect_headings" checked><span style="width:auto">识别标题层级（一、／（一）／1.／1.1）</span></label>
+        <label class="field"><input type="checkbox" id="c_detect_title" checked><span style="width:auto">自动识别主标题与副标题（第一段）</span></label>
+        <label class="field"><input type="checkbox" id="c_detect_tables" checked><span style="width:auto">识别表格（制表符 / 竖线分隔）</span></label>
+        <label class="field"><input type="checkbox" id="c_enable_attachment_formatting" checked><span style="width:auto">识别「附件／表／图」题注</span></label>
+        <label class="field"><input type="checkbox" id="c_strip_markdown" checked><span style="width:auto">剥离 Markdown 标记（**加粗**、# 等）</span></label>
+        <label class="field"><input type="checkbox" id="c_normalize_punctuation" checked><span style="width:auto">标点标准化（英文逗号→中文逗号等）</span></label>
+        <div class="field"><span>空行处理</span><select id="c_blank_line_mode"></select></div>
+      </div>
+
+      <hr>
+      <button class="btn" id="btnRun">一键排版 →  生成 Word</button>
+      <div class="note">生成的文件会下载到浏览器默认下载目录，不会联网、不会上传。</div>
+    </div>
+
+    <!-- ---------- 规范 ---------- -->
+    <div class="pane hide" id="pane-preset">
+      <div class="presetbar">
+        <label>规范方案</label>
+        <select id="presetSel"></select>
+      </div>
+      <div class="note" id="presetDesc"></div>
+
+      <fieldset>
+        <legend>快速微调</legend>
+        <div class="field"><span>正文字体</span><select id="q_body_font"></select></div>
+        <div class="field"><span>正文字号</span><select id="q_body_size"></select></div>
+        <div class="field"><span>行距</span><select id="q_line_spacing"></select></div>
+        <div class="field"><span>首行缩进</span>
+          <input type="number" id="q_indent" min="0" max="8" step="0.5"><span class="tagl">字符</span>
+        </div>
+        <div class="field"><span>页边距</span>
+          <input type="number" id="q_margin" min="0" max="6" step="0.1"><span class="tagl">cm（上下左右统一）</span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>标题样式</legend>
+        <div class="grid2">
+          <div class="field"><span>主标题字体</span><select id="q_title_font"></select></div>
+          <div class="field"><span>主标题字号</span><select id="q_title_size"></select></div>
+          <div class="field"><span>一级标题字体</span><select id="q_h1_font"></select></div>
+          <div class="field"><span>一级标题字号</span><select id="q_h1_size"></select></div>
+          <div class="field"><span>二级标题字体</span><select id="q_h2_font"></select></div>
+          <div class="field"><span>二级标题字号</span><select id="q_h2_size"></select></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>页面与页码</legend>
+        <label class="field"><input type="checkbox" id="c_force_a4" checked><span style="width:auto">强制 A4 纸张</span></label>
+        <div class="field"><span>页码格式</span><select id="c_page_number_format"></select></div>
+        <div class="field"><span>页码位置</span><select id="c_page_number_position"></select></div>
+        <div class="field"><span>起始页码</span><input type="number" id="c_page_number_start" min="1" value="1"></div>
+        <label class="field"><input type="checkbox" id="c_enable_header"><span style="width:auto">添加页眉</span></label>
+        <div class="field"><span>页眉文字</span><input type="text" id="c_header_text" placeholder="如：XX 单位文件"></div>
+      </fieldset>
+    </div>
+
+    <!-- ---------- 自定义 ---------- -->
+    <div class="pane hide" id="pane-adv">
+      <div class="row">
+        <button class="btn ghost sm" id="btnSaveScheme">💾 存为我的方案</button>
+        <button class="btn ghost sm" id="btnManageScheme">📋 管理方案</button>
+        <button class="btn ghost sm" id="btnReset">↺ 恢复默认</button>
+      </div>
+      <div class="note">所有修改实时生效，预览会立刻更新。</div>
+
+      <div class="collapse-h" id="hPage"><span class="arw">▼</span>页面设置</div>
+      <div class="collapse-b" id="bPage">
+        <fieldset>
+          <div class="grid2">
+            <div class="field"><span>上边距</span><input type="number" step="0.1" data-cfg="margin_top"></div>
+            <div class="field"><span>下边距</span><input type="number" step="0.1" data-cfg="margin_bottom"></div>
+            <div class="field"><span>左边距</span><input type="number" step="0.1" data-cfg="margin_left"></div>
+            <div class="field"><span>右边距</span><input type="number" step="0.1" data-cfg="margin_right"></div>
+            <div class="field"><span>装订线</span><input type="number" step="0.1" data-cfg="gutter"></div>
+            <div class="field"><span>页脚距</span><input type="number" step="0.1" data-cfg="footer_distance"></div>
+            <div class="field"><span>页眉距</span><input type="number" step="0.1" data-cfg="header_distance"></div>
+            <div class="field"><span>标题对齐</span>
+              <select data-cfg="title_align">
+                <option value="center">居中</option><option value="left">左对齐</option><option value="right">右对齐</option>
+              </select>
+            </div>
+            <div class="field"><span>正文对齐</span>
+              <select data-cfg="body_align">
+                <option value="both">两端对齐</option><option value="left">左对齐</option><option value="distribute">分散对齐</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hFont"><span class="arw">▼</span>字体与字号（逐级）</div>
+      <div class="collapse-b" id="bFont">
+        <fieldset>
+          <div id="fontTable"></div>
+          <hr>
+          <div class="grid2">
+            <div class="field"><span>英文/数字字体</span><select data-cfg="english_font"></select></div>
+            <div class="field"><span>中文用英文字体</span>
+              <select data-cfg="use_custom_english_font">
+                <option value="true">使用上面的英文字体</option>
+                <option value="false">跟随各段中文字体</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hSpacing"><span class="arw">▼</span>行距与缩进</div>
+      <div class="collapse-b" id="bSpacing">
+        <fieldset>
+          <div class="field"><span>行距类型</span><select data-cfg="line_spacing_rule"></select></div>
+          <div class="field"><span>行距值</span><input type="number" step="0.05" data-cfg="line_spacing_value"><span class="tagl">倍 / 磅</span></div>
+          <div class="field"><span>首行缩进</span><input type="number" step="0.5" data-cfg="first_line_indent_chars"><span class="tagl">字符</span></div>
+          <div class="grid2">
+            <div class="field"><span>左缩进</span><input type="number" step="0.1" data-cfg="left_indent_cm"></div>
+            <div class="field"><span>右缩进</span><input type="number" step="0.1" data-cfg="right_indent_cm"></div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hParaSpace"><span class="arw">▼</span>段前 / 段后间距</div>
+      <div class="collapse-b" id="bParaSpace">
+        <fieldset>
+          <div class="grid2">
+            <div class="field"><span>标题段前</span><input type="number" step="0.5" data-cfg="title_space_before"><span class="tagl">磅</span></div>
+            <div class="field"><span>标题段后</span><input type="number" step="0.5" data-cfg="title_space_after"><span class="tagl">磅</span></div>
+            <div class="field"><span>小标题段前</span><input type="number" step="0.5" data-cfg="heading_space_before"><span class="tagl">磅</span></div>
+            <div class="field"><span>小标题段后</span><input type="number" step="0.5" data-cfg="heading_space_after"><span class="tagl">磅</span></div>
+            <div class="field"><span>正文段前</span><input type="number" step="0.5" data-cfg="body_space_before"><span class="tagl">磅</span></div>
+            <div class="field"><span>正文段后</span><input type="number" step="0.5" data-cfg="body_space_after"><span class="tagl">磅</span></div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hNumber"><span class="arw">▼</span>标题自动编号</div>
+      <div class="collapse-b" id="bNumber">
+        <fieldset>
+          <label class="field"><input type="checkbox" data-cfg="auto_numbering"><span style="width:auto">启用自动编号（会覆盖正文里手写的序号）</span></label>
+          <div class="field"><span>编号样式</span><select data-cfg="number_style"></select></div>
+          <div class="note">示例：一级「一、」→ 二级「（一）」→ 三级「1.」→ 四级「（1）」</div>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hTable"><span class="arw">▼</span>表格</div>
+      <div class="collapse-b" id="bTable">
+        <fieldset>
+          <label class="field"><input type="checkbox" data-cfg="enable_table_formatting"><span style="width:auto">启用表格自动排版</span></label>
+          <div class="grid2">
+            <div class="field"><span>单元格字体</span><select data-cfg="table_font"></select></div>
+            <div class="field"><span>表头字体</span><select data-cfg="table_header_font"></select></div>
+            <div class="field"><span>单元格字号</span><input type="number" step="0.5" data-cfg="table_size"></div>
+            <div class="field"><span>表头字号</span><input type="number" step="0.5" data-cfg="table_header_size"></div>
+            <div class="field"><span>行高</span><input type="number" step="0.05" data-cfg="table_row_height_cm"><span class="tagl">cm</span></div>
+            <div class="field"><span>表格宽度</span><input type="number" step="5" data-cfg="table_width_percent"><span class="tagl">%</span></div>
+            <div class="field"><span>边框粗细</span><input type="number" step="0.25" data-cfg="table_border_size_pt"><span class="tagl">磅</span></div>
+            <div class="field"><span>表格行距</span>
+              <select data-cfg="table_line_spacing">
+                <option value="single">单倍</option><option value="1.5">1.5 倍</option><option value="2.0">2 倍</option>
+              </select>
+            </div>
+          </div>
+          <hr>
+          <label class="field"><input type="checkbox" data-cfg="table_header_bold"><span style="width:auto">表头加粗</span></label>
+          <label class="field"><input type="checkbox" data-cfg="table_smart_align"><span style="width:auto">智能对齐（数字居中、文字左对齐）</span></label>
+          <label class="field"><input type="checkbox" data-cfg="table_unified_borders"><span style="width:auto">统一边框</span></label>
+          <label class="field"><input type="checkbox" data-cfg="table_auto_col_width"><span style="width:auto">自动列宽（等分）</span></label>
+        </fieldset>
+      </div>
+
+      <div class="collapse-h" id="hExtra"><span class="arw">▼</span>其他</div>
+      <div class="collapse-b" id="bExtra">
+        <fieldset>
+          <label class="field"><input type="checkbox" data-cfg="set_outline"><span style="width:auto">设置大纲级别（可在 Word 里生成导航目录）</span></label>
+          <label class="field"><input type="checkbox" data-cfg="add_page_break_before_h1"><span style="width:auto">每个一级标题前分页</span></label>
+          <hr>
+          <div class="field"><span>文档标题</span><input type="text" data-cfg="document_title" placeholder="写入文档属性"></div>
+          <div class="field"><span>作者</span><input type="text" data-cfg="document_author"></div>
+          <div class="field"><span>主题</span><input type="text" data-cfg="document_subject"></div>
+        </fieldset>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 右栏预览 ================= -->
+  <div class="col-right">
+    <div class="ptool">
+      <span class="t">实时预览</span>
+      <span class="chip" id="chipPreset">党政机关公文格式</span>
+      <span class="spacer"></span>
+      <label class="zoomer">缩放 <input type="range" id="zoom" min="40" max="140" value="80"><span id="zoomVal">80%</span></label>
+      <button class="btn ghost sm" id="btnRefresh">刷新</button>
+    </div>
+    <div class="view" id="view">
+      <div class="empty" id="emptyTip">
+        <span class="big">📝</span>
+        左侧粘贴文本或拖入文件<br>这里会立刻显示排版预览
+      </div>
+      <div class="page" id="page" style="display:none">
+        <div class="hdr" id="pvHeader" style="display:none"></div>
+        <div class="doc" id="pvDoc"></div>
+        <div class="ftr" id="pvFooter" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span class="dot" id="stDot"></span>
+  <span id="stText">就绪</span>
+  <span class="spacer" style="flex:1"></span>
+  <span id="stStats"></span>
+</footer>
+
+<!-- 模态框 -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <h3 id="modalTitle">标题</h3>
+    <div class="body" id="modalBody"></div>
+    <div class="foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<script>
+
+/* ================= zip.js ================= */
+/* ============================================================
+ * zip.js — 零依赖 ZIP 读写（STORE + deflate-raw）
+ * 用于 .docx (OPC 包) 的生成与解析。
+ * 压缩优先使用浏览器内置 CompressionStream / DecompressionStream，
+ * 不支持时自动退化为 STORE（ZIP 规范允许，Word/WPS 均可正常打开）。
+ * ============================================================ */
+
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(buf) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+const ENC = new TextEncoder();
+const DEC = new TextDecoder('utf-8');
+
+function utf8(str) { return ENC.encode(str); }
+function fromUtf8(buf) { return DEC.decode(buf); }
+
+/** 把 Bytes/ArrayBuffer/Uint8Array 统一成 Uint8Array */
+function asBytes(x) {
+  if (x instanceof Uint8Array) return x;
+  if (x instanceof ArrayBuffer) return new Uint8Array(x);
+  if (ArrayBuffer.isView(x)) return new Uint8Array(x.buffer, x.byteOffset, x.byteLength);
+  throw new TypeError('无法识别的二进制类型');
+}
+
+const HAS_COMPRESSION = (typeof CompressionStream === 'function');
+const HAS_DECOMPRESSION = (typeof DecompressionStream === 'function');
+
+/** 读完一个 ReadableStream，拼成 Uint8Array。
+    自己读 reader，不依赖 Response —— 这样 ZIP 层不绑定任何环境全局对象。 */
+async function collectStream(stream) {
+  const reader = stream.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const u = asBytes(value);
+    chunks.push(u);
+    total += u.length;
+  }
+  const out = new Uint8Array(total);
+  let o = 0;
+  for (const c of chunks) { out.set(c, o); o += c.length; }
+  return out;
+}
+
+/** raw deflate 压缩；失败返回 null（调用方退化为 STORE） */
+async function deflateRaw(bytes) {
+  if (!HAS_COMPRESSION) return null;
+  try {
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    const out = await collectStream(stream);
+    // 压不小就不用
+    return out.length < bytes.length ? out : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** raw deflate 解压 */
+async function inflateRaw(bytes) {
+  if (!HAS_DECOMPRESSION) throw new Error('当前浏览器不支持解压（需 Chrome/Edge 103+）');
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return collectStream(stream);
+}
+
+/* ---------------- 写 ---------------- */
+
+class ByteWriter {
+  constructor() { this.chunks = []; this.len = 0; }
+  push(b) { const u = asBytes(b); this.chunks.push(u); this.len += u.length; }
+  u16(v) { const b = new Uint8Array(2); new DataView(b.buffer).setUint16(0, v, true); this.push(b); }
+  u32(v) { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, v >>> 0, true); this.push(b); }
+  blob(type) { return new Blob(this.chunks, type ? { type } : undefined); }
+  bytes() {
+    const out = new Uint8Array(this.len);
+    let o = 0;
+    for (const c of this.chunks) { out.set(c, o); o += c.length; }
+    return out;
+  }
+}
+
+function dosDateTime(d) {
+  const time = ((d.getHours() & 31) << 11) | ((d.getMinutes() & 63) << 5) | ((d.getSeconds() / 2) & 31);
+  const date = (((d.getFullYear() - 1980) & 127) << 9) | (((d.getMonth() + 1) & 15) << 5) | (d.getDate() & 31);
+  return { time, date };
+}
+
+/**
+ * 打包为 ZIP。
+ * @param {Array<{name:string, data:string|Uint8Array}>} files
+ * @param {{compress?:boolean}} [opts]
+ * @returns {Promise<Blob>}
+ */
+async function makeZip(files, opts = {}) {
+  const compress = opts.compress !== false;
+  const w = new ByteWriter();
+  const { time, date } = dosDateTime(new Date());
+  const central = [];
+  let offset = 0;
+
+  for (const f of files) {
+    const nameBytes = utf8(f.name);
+    const raw = typeof f.data === 'string' ? utf8(f.data) : asBytes(f.data);
+    const crc = crc32(raw);
+    let method = 0, payload = raw;
+    if (compress) {
+      const packed = await deflateRaw(raw);
+      if (packed) { method = 8; payload = packed; }
+    }
+    const flags = 0x0800; // UTF-8 文件名
+
+    const local = new ByteWriter();
+    local.u32(0x04034b50);
+    local.u16(20);            // version needed
+    local.u16(flags);
+    local.u16(method);
+    local.u16(time);
+    local.u16(date);
+    local.u32(crc);
+    local.u32(payload.length);
+    local.u32(raw.length);
+    local.u16(nameBytes.length);
+    local.u16(0);             // extra len
+    local.push(nameBytes);
+
+    central.push({ nameBytes, method, time, date, crc, clen: payload.length, ulen: raw.length, offset, flags });
+    w.push(local.bytes());
+    w.push(payload);
+    offset += local.len + payload.length;
+  }
+
+  const cdStart = offset;
+  for (const c of central) {
+    const h = new ByteWriter();
+    h.u32(0x02014b50);
+    h.u16(20);                // version made by
+    h.u16(20);                // version needed
+    h.u16(c.flags);
+    h.u16(c.method);
+    h.u16(c.time);
+    h.u16(c.date);
+    h.u32(c.crc);
+    h.u32(c.clen);
+    h.u32(c.ulen);
+    h.u16(c.nameBytes.length);
+    h.u16(0);                 // extra
+    h.u16(0);                 // comment
+    h.u16(0);                 // disk start
+    h.u16(0);                 // internal attrs
+    h.u32(0);                 // external attrs
+    h.u32(c.offset);
+    h.push(c.nameBytes);
+    w.push(h.bytes());
+  }
+  const cdSize = w.len - cdStart;
+
+  const eocd = new ByteWriter();
+  eocd.u32(0x06054b50);
+  eocd.u16(0);
+  eocd.u16(0);
+  eocd.u16(central.length);
+  eocd.u16(central.length);
+  eocd.u32(cdSize);
+  eocd.u32(cdStart);
+  eocd.u16(0);
+  w.push(eocd.bytes());
+
+  return new Blob([w.bytes()], {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  });
+}
+
+/* ---------------- 读 ---------------- */
+
+/**
+ * 解析 ZIP，返回 {name: Uint8Array}
+ * @param {ArrayBuffer|Uint8Array} buf
+ */
+async function readZip(buf) {
+  const data = asBytes(buf);
+  const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
+  // 找 EOCD
+  let eocd = -1;
+  const minStart = Math.max(0, data.length - 65558);
+  for (let i = data.length - 22; i >= minStart; i--) {
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('不是有效的 ZIP 文件（未找到中央目录）');
+
+  const total = dv.getUint16(eocd + 10, true);
+  let cdOff = dv.getUint32(eocd + 16, true);
+
+  const out = {};
+  for (let n = 0; n < total; n++) {
+    if (dv.getUint32(cdOff, true) !== 0x02014b50) break;
+    const method = dv.getUint16(cdOff + 10, true);
+    const clen = dv.getUint32(cdOff + 20, true);
+    const nameLen = dv.getUint16(cdOff + 28, true);
+    const extraLen = dv.getUint16(cdOff + 30, true);
+    const commentLen = dv.getUint16(cdOff + 32, true);
+    const localOff = dv.getUint32(cdOff + 42, true);
+    const name = fromUtf8(data.subarray(cdOff + 46, cdOff + 46 + nameLen));
+
+    if (dv.getUint32(localOff, true) === 0x04034b50) {
+      const lNameLen = dv.getUint16(localOff + 26, true);
+      const lExtraLen = dv.getUint16(localOff + 28, true);
+      const start = localOff + 30 + lNameLen + lExtraLen;
+      const raw = data.subarray(start, start + clen);
+      try {
+        out[name] = method === 0 ? raw : await inflateRaw(raw);
+      } catch (e) {
+        out[name] = method === 0 ? raw : null;
+      }
+    }
+    cdOff += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
+async function readZipText(buf, name) {
+  const files = await readZip(buf);
+  const f = files[name];
+  return f ? fromUtf8(f) : null;
+}
+
+if (typeof window !== 'undefined') {
+  window.WFPZip = { makeZip, readZip, readZipText, crc32, utf8, fromUtf8, deflateRaw, inflateRaw, HAS_COMPRESSION };
+}
+
+
+/* ================= defaults.js ================= */
+/* ============================================================
+ * defaults.js — 配置模型：默认值、预设方案、常量
+ * 参照 Word Formatter Pro 全量配置面 + 8 项增强
+ * ============================================================ */
+
+/** 中文字号 → pt */
+const FONT_SIZE_MAP = {
+  '初号': 42, '小初': 36, '一号': 26, '小一': 24, '二号': 22, '小二': 18,
+  '三号': 16, '小三': 15, '四号': 14, '小四': 12, '五号': 10.5, '小五': 9,
+  '六号': 7.5, '小六': 6.5, '七号': 5.5, '八号': 5
+};
+
+/** 预设字体（党政机关公文常用字体系列，兼容 GB2312 与通用名） */
+const PRESET_FONT_OPTIONS = [
+  '方正小标宋简体', '方正小标宋_GBK',
+  '黑体', '方正黑体', '方正黑体_GBK', '思源黑体',
+  '楷体', '楷体_GB2312', '方正楷体', '方正楷体_GBK',
+  '仿宋', '仿宋_GB2312', '方正仿宋', '方正仿宋_GBK',
+  '宋体', '新宋体', '华文中宋', '华文宋体',
+  '微软雅黑', '等线', '思源宋体',
+  'Times New Roman', 'Arial', 'Calibri', 'Cambria', 'Georgia', 'Verdana', 'Consolas'
+];
+
+const BLANK_LINE_MODE_OPTIONS = [
+  { value: 'keep_all', label: '不改动任何空行' },
+  { value: 'delete_single', label: '删除单个空行' },
+  { value: 'keep_single', label: '保留单个空行（多个空行压缩为 1 个）' },
+  { value: 'delete_all', label: '删除所有空行' }
+];
+
+const LINE_SPACING_RULE_OPTIONS = [
+  { value: 'single', label: '单倍行距' },
+  { value: 'onehalf', label: '1.5 倍行距' },
+  { value: 'double', label: '2 倍行距' },
+  { value: 'multiple', label: '多倍行距（自定义）' },
+  { value: 'fixed', label: '固定值（磅）' },
+  { value: 'atLeast', label: '最小值（磅）' }
+];
+
+const PAGE_NUMBER_FORMAT_OPTIONS = [
+  { value: 'arabic', label: '阿拉伯数字 1 2 3' },
+  { value: 'chinese', label: '中文数字 一 二 三' },
+  { value: 'roman', label: '罗马数字 I II III' },
+  { value: 'none', label: '不显示页码' }
+];
+
+const PAGE_NUMBER_POSITION_OPTIONS = [
+  { value: 'footer_center', label: '页脚居中' },
+  { value: 'footer_right', label: '页脚右对齐' },
+  { value: 'footer_outer', label: '页脚外侧（奇偶镜像）' },
+  { value: 'header_center', label: '页眉居中' },
+  { value: 'header_right', label: '页眉右对齐' }
+];
+
+const NUMBER_STYLE_OPTIONS = [
+  { value: 'cn_dun', label: '一、二、三、（顿号）' },
+  { value: 'cn_paren', label: '（一）（二）（三）' },
+  { value: 'cn_circle', label: '（1）（2）（3）' },
+  { value: 'arabic_dot', label: '1. 2. 3.' },
+  { value: 'arabic_dun', label: '1、2、3、' },
+  { value: 'arabic_multi', label: '1.1、1.1.1（多级）' },
+  { value: 'chapter', label: '第一章 / 第一节' }
+];
+
+const BLANK_LINE_MODE_DELETE_SINGLE = 'delete_single';
+const BLANK_LINE_MODE_KEEP_SINGLE = 'keep_single';
+
+/** 全部默认配置（39 项原始 + 增强项） */
+const DEFAULT_CONFIG = {
+  /* —— 页面 —— */
+  force_a4: true,
+  margin_top: 3.7,
+  margin_bottom: 3.5,
+  margin_left: 2.8,
+  margin_right: 2.6,
+  footer_distance: 2.8,
+  header_distance: 1.5,
+  gutter: 0,
+
+  /* —— 字体 —— */
+  title_font: '方正小标宋简体',
+  subtitle_font: '楷体_GB2312',
+  salutation_font: '仿宋_GB2312',
+  h1_font: '黑体',
+  h2_font: '楷体_GB2312',
+  h3_font: '仿宋_GB2312',
+  h4_font: '仿宋_GB2312',
+  body_font: '仿宋_GB2312',
+  page_number_font: '宋体',
+  table_font: '仿宋_GB2312',
+  table_header_font: '黑体',
+  table_caption_font: '黑体',
+  figure_caption_font: '黑体',
+  attachment_font: '仿宋_GB2312',
+  english_font: 'Times New Roman',
+  use_custom_english_font: true,
+
+  /* —— 字号（pt）—— */
+  title_size: 22,
+  subtitle_size: 16,
+  salutation_size: 16,
+  h1_size: 16,
+  h2_size: 16,
+  h3_size: 16,
+  h4_size: 16,
+  body_size: 16,
+  page_number_size: 14,
+  table_size: 12,
+  table_header_size: 12,
+  table_caption_size: 16,
+  figure_caption_size: 16,
+  attachment_size: 16,
+
+  /* —— 行距 / 缩进 —— */
+  line_spacing_rule: 'fixed',
+  line_spacing_value: 28,
+  title_line_spacing: 1.0,
+  subtitle_line_spacing: 1.0,
+  left_indent_cm: 0,
+  right_indent_cm: 0,
+  first_line_indent_chars: 2,
+
+  /* —— 段间距（磅）—— */
+  title_space_before: 0,
+  title_space_after: 0,
+  heading_space_before: 0,
+  heading_space_after: 0,
+  body_space_before: 0,
+  body_space_after: 0,
+
+  /* —— 对齐 —— */
+  title_align: 'center',
+  body_align: 'both',
+
+  /* —— 表格 —— */
+  enable_table_formatting: true,
+  table_row_height_cm: 0.8,
+  table_auto_col_width: true,
+  table_width_percent: 100,
+  table_header_bold: true,
+  table_smart_align: true,
+  table_unified_borders: true,
+  table_border_size_pt: 0.5,
+  table_line_spacing: 'single',
+
+  /* —— 其他 —— */
+  set_outline: true,
+  enable_attachment_formatting: true,
+  blank_line_mode: 'keep_all',
+  normalize_punctuation: true,
+  strip_markdown: true,
+
+  /* —— 标题加粗（空 = 用内置规则：三级、四级加粗）—— */
+  title_bold: false,
+  h1_bold: false,
+  h2_bold: false,
+  h3_bold: true,
+  h4_bold: true,
+
+  /* —— 增强：自动编号 —— */
+  auto_numbering: false,
+  number_style: 'cn_dun',
+  number_restart_h1: true,
+
+  /* —— 增强：页眉 —— */
+  enable_header: false,
+  header_text: '',
+  header_align: 'center',
+  header_font: '宋体',
+  header_size: 14,
+
+  /* —— 增强：页码 —— */
+  page_number_format: 'arabic',
+  page_number_position: 'footer_center',
+  page_number_start: 1,
+  page_number_prefix: '',
+  page_number_suffix: '',
+
+  /* —— 增强：识别开关 —— */
+  detect_title: true,
+  detect_headings: true,
+  detect_tables: true,
+  detect_attachments: true,
+  detect_outline: true,
+  document_title: '',
+  document_author: '',
+  document_subject: '',
+
+  /* —— 增强：封面 / 元数据 —— */
+  add_page_break_before_h1: false
+};
+
+/** 预设方案 */
+const PRESETS = {
+  '党政机关公文格式': {
+    force_a4: true, margin_top: 3.7, margin_bottom: 3.5, margin_left: 2.8, margin_right: 2.6,
+    title_font: '方正小标宋简体', title_size: 22, title_align: 'center',
+    h1_font: '黑体', h1_size: 16,
+    h2_font: '楷体_GB2312', h2_size: 16,
+    h3_font: '仿宋_GB2312', h3_size: 16, h3_bold: true,
+    h4_font: '仿宋_GB2312', h4_size: 16, h4_bold: true,
+    body_font: '仿宋_GB2312', body_size: 16,
+    english_font: 'Times New Roman', use_custom_english_font: true,
+    line_spacing_rule: 'fixed', line_spacing_value: 28,
+    first_line_indent_chars: 2, body_indent_chars: 2,
+    page_number_font: '宋体', page_number_size: 14,
+    page_number_format: 'arabic', page_number_position: 'footer_center',
+    footer_distance: 2.8, set_outline: true
+  },
+  '通用报告（宋体）': {
+    margin_top: 2.54, margin_bottom: 2.54, margin_left: 3.17, margin_right: 3.17,
+    title_font: '黑体', title_size: 22, title_align: 'center',
+    h1_font: '黑体', h1_size: 16,
+    h2_font: '黑体', h2_size: 15,
+    h3_font: '宋体', h3_size: 14,
+    h4_font: '宋体', h4_size: 12,
+    body_font: '宋体', body_size: 12,
+    english_font: 'Times New Roman',
+    line_spacing_rule: 'onehalf', line_spacing_value: 1.5,
+    first_line_indent_chars: 2,
+    page_number_font: '宋体', page_number_size: 10.5,
+    page_number_format: 'arabic', page_number_position: 'footer_center'
+  },
+  '论文 / 学术': {
+    margin_top: 2.5, margin_bottom: 2.5, margin_left: 3.0, margin_right: 2.5,
+    title_font: '黑体', title_size: 18, title_align: 'center',
+    h1_font: '黑体', h1_size: 15,
+    h2_font: '黑体', h2_size: 14,
+    h3_font: '楷体_GB2312', h3_size: 12,
+    h4_font: '宋体', h4_size: 12,
+    body_font: '宋体', body_size: 12,
+    english_font: 'Times New Roman',
+    line_spacing_rule: 'multiple', line_spacing_value: 1.25,
+    first_line_indent_chars: 2,
+    page_number_font: '宋体', page_number_size: 10.5,
+    page_number_format: 'arabic', page_number_position: 'footer_center'
+  },
+  '简洁 / 无修饰': {
+    margin_top: 2.54, margin_bottom: 2.54, margin_left: 2.54, margin_right: 2.54,
+    title_font: '黑体', title_size: 18, title_align: 'center',
+    h1_font: '黑体', h1_size: 14,
+    h2_font: '黑体', h2_size: 12,
+    h3_font: '宋体', h3_size: 12,
+    h4_font: '宋体', h4_size: 12,
+    body_font: '宋体', body_size: 12,
+    english_font: 'Calibri', use_custom_english_font: true,
+    line_spacing_rule: 'single', line_spacing_value: 1.0,
+    first_line_indent_chars: 0,
+    page_number_format: 'none'
+  }
+};
+
+/** 需要「角色 → 字体/字号」映射的段落类型 */
+const ROLE_KEYS = ['title', 'subtitle', 'salutation', 'h1', 'h2', 'h3', 'h4', 'body', 'attachment', 'table_caption', 'figure_caption'];
+
+const ROLE_LABELS = {
+  title: '主标题', subtitle: '副标题', salutation: '主送机关', h1: '一级标题', h2: '二级标题',
+  h3: '三级标题', h4: '四级标题', body: '正文', attachment: '附件标记',
+  table_caption: '表标题', figure_caption: '图标题'
+};
+
+/** 合并配置：overrides 覆盖 base */
+function mergeConfig(base, overrides) {
+  const out = Object.assign({}, base);
+  if (overrides) {
+    for (const k of Object.keys(overrides)) {
+      if (overrides[k] !== undefined && overrides[k] !== null) out[k] = overrides[k];
+    }
+  }
+  return out;
+}
+
+if (typeof window !== 'undefined') {
+  window.WFPDefaults = {
+    FONT_SIZE_MAP, PRESET_FONT_OPTIONS, BLANK_LINE_MODE_OPTIONS,
+    LINE_SPACING_RULE_OPTIONS, PAGE_NUMBER_FORMAT_OPTIONS,
+    PAGE_NUMBER_POSITION_OPTIONS, NUMBER_STYLE_OPTIONS,
+    BLANK_LINE_MODE_DELETE_SINGLE, BLANK_LINE_MODE_KEEP_SINGLE,
+    DEFAULT_CONFIG, PRESETS, ROLE_KEYS, ROLE_LABELS, mergeConfig
+  };
+}
+
+
+/* ================= parser.js ================= */
+/* ============================================================
+ * parser.js — 文本解析引擎
+ * 职责：Markdown 剥离 → 标点标准化 → 空行处理 → 结构识别
+ * 产出统一的段落块数组，交给 docx.js 渲染。
+ * ============================================================ */
+
+const RE_MD_HEADING = /^(#{1,6})\s+(.*)$/;
+const RE_MD_HR = /^\s*([-*_]\s*){3,}$/;
+const RE_MD_FENCE = /^\s*(```|~~~)/;
+/* 注意：故意不把 `1.` 当 Markdown 有序列表剥离 —— 中文文档里它几乎总是三级标题，
+   剥离会导致三级标题全部消失。只剥离明确的圆点/星号项目符号与 `1)` 形式。 */
+const RE_MD_LIST = /^\s*([-*+]|\d+\))\s+/;
+const RE_MD_QUOTE = /^\s*>\s?/;
+const RE_MD_TABLE_SEP = /^\s*\|?[\s:|-]+\|[\s:|-]*$/;
+
+/* 中文序号标题识别 */
+const RE_H_CN_DUN = /^\s*([一二三四五六七八九十百]+)\s*[、.．]\s*(.*)$/;          // 一、
+const RE_H_CN_PAREN = /^\s*[（(]\s*([一二三四五六七八九十百]+)\s*[）)]\s*(.*)$/;   // （一）
+const RE_H_CN_CIRCLE = /^\s*[（(]\s*(\d{1,2})\s*[）)]\s*(.*)$/;                    // （1）
+const RE_H_ARABIC_DOT = /^\s*(\d{1,2})\s*[.．]\s*(.*)$/;                           // 1.
+const RE_H_ARABIC_DUN = /^\s*(\d{1,2})\s*[、]\s*(.*)$/;                            // 1、
+const RE_H_ARABIC_MULTI = /^\s*(\d{1,2}(?:[.．]\d{1,2}){1,3})\s*[.．、]?\s*(.*)$/;  // 1.1 / 1.1.1
+const RE_H_CHAPTER = /^\s*第\s*([一二三四五六七八九十百\d]+)\s*([章节部分篇])\s*(.*)$/;
+const RE_H_KEYWORD = /^\s*(附\s*件|附\s*录|表|图)\s*[:：]?\s*(\d+)?\s*[：:、.]?\s*(.*)$/;
+
+/* 主送机关（公文的「称呼」行）：以冒号结尾、通篇无句末标点、通常 ≤ 两行。
+   例：各部门、各直属单位： / 各市、县（区）人民政府，市直各单位： / 各处室：
+   排除正文小标题式冒号句（如「一是装卸控损，把好运输“源头关”。」不以冒号结尾，
+   而「会议要求：」这类句子会因含句末标点或出现在正文中段而不被误判）。 */
+const RE_SALUTATION_END = /[：:]$/;
+const RE_SALUTATION_BAD = /[。！？!?；;]/;
+
+/* ---------------- 标点与字符标准化 ---------------- */
+
+const CJK_RE = /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/;
+function hasCJK(s) { return CJK_RE.test(s); }
+
+/** 成对处理引号：偶数位置开引号，奇数位置闭引号 */
+function normalizeQuotes(text) {
+  let out = '';
+  let dqOpen = true, sqOpen = true;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') { out += dqOpen ? '\u201c' : '\u201d'; dqOpen = !dqOpen; }
+    else if (ch === "'") { out += sqOpen ? '\u2018' : '\u2019'; sqOpen = !sqOpen; }
+    else out += ch;
+  }
+  return out;
+}
+
+/**
+ * 标点标准化：英文标点 → 中文标点（仅在中文字符语境下），并规整常见错误。
+ */
+function normalizePunctuation(text) {
+  let s = text;
+
+  // 全角空格 → 普通空格；连续空格压缩
+  // 注意：制表符是表格列分隔符，绝不能在这里被吃掉，因此一律用 [ \u3000] 而非 \s
+  s = s.replace(/\u3000/g, ' ').replace(/[ ]{2,}/g, ' ');
+
+  // 省略号
+  s = s.replace(/\.{3,}/g, '……').replace(/。{2,}/g, '。');
+  // 破折号
+  s = s.replace(/_{2,}|-{2,}/g, '——');
+
+  // 括号：紧跟中文字符时转中文括号（只跨越空格，不跨越制表符）
+  s = s.replace(/([\u4e00-\u9fff])[ ]*\([ ]*/g, '$1（');
+  s = s.replace(/[ ]*\)[ ]*([\u4e00-\u9fff]|$)/g, '）$1');
+  // 行首左括号
+  s = s.replace(/^\([ ]*/g, '（');
+  s = s.replace(/[ ]*\)[ ]*$/g, '）');
+
+  // 逗号 / 分号 / 冒号 / 叹号 / 问号：后接或前接中文
+  s = s.replace(/([\u4e00-\u9fff])[ ]*,[ ]*/g, '$1，');
+  s = s.replace(/([\u4e00-\u9fff])[ ]*;[ ]*/g, '$1；');
+  s = s.replace(/([\u4e00-\u9fff])[ ]*:[ ]*/g, '$1：');
+  s = s.replace(/([\u4e00-\u9fff])[ ]*![ ]*/g, '$1！');
+  s = s.replace(/([\u4e00-\u9fff])[ ]*\?[ ]*/g, '$1？');
+  s = s.replace(/([\u4e00-\u9fff])[ ]*\.[ ]*([ ]|$)/g, '$1。$2');
+
+  // 句号在非 ASCII 数字场景下的点号（1.2 → 保留；仅行尾孤点转换）
+  s = s.replace(/([\u4e00-\u9fff])\.$/g, '$1。');
+
+  // 引号
+  s = s.replace(/[ ]*"([^"]*)"[ ]*/g, (m, inner) => '“' + inner + '”');
+  s = normalizeQuotes(s);
+
+  // 中文之间多余空格（同样不跨越制表符）
+  s = s.replace(/([\u4e00-\u9fff])[ ]+([\u4e00-\u9fff])/g, '$1$2');
+
+  // 数字/英文与中文间的空格保留（增强可读性），但压缩多空格
+  s = s.replace(/[ ]{2,}/g, ' ').trim();
+
+  return s;
+}
+
+/* ---------------- Markdown 剥离 ---------------- */
+
+function stripMarkdownInline(text) {
+  let s = text;
+  s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');          // 图片 → alt
+  s = s.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');            // 链接 → 文本
+  s = s.replace(/\*\*\*(.+?)\*\*\*/g, '$1');
+  s = s.replace(/\*\*(.+?)\*\*/g, '$1');
+  s = s.replace(/___(.+?)___/g, '$1');
+  s = s.replace(/__(.+?)__/g, '$1');
+  s = s.replace(/(^|[^*])\*(?!\s)([^*]+?)\*/g, '$1$2');
+  s = s.replace(/(^|[^_])_(?!\s)([^_]+?)_/g, '$1$2');
+  s = s.replace(/~~(.+?)~~/g, '$1');
+  s = s.replace(/`([^`]+)`/g, '$1');
+  s = s.replace(/<[^>]{1,80}>/g, '');                       // HTML 标签
+  s = s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+       .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+  return s;
+}
+
+/* ---------------- 结构识别 ---------------- */
+
+/**
+ * 判断一段独立文本是否像标题，返回 {level:1..4, text, kind} 或 null。
+ */
+function classifyHeading(text, cfg) {
+  const t = text.trim();
+  if (!t) return null;
+
+  // Markdown 显式标题
+  const md = t.match(RE_MD_HEADING);
+  if (md) {
+    const lv = Math.min(4, md[1].length);
+    return { level: lv, text: md[2].trim(), kind: 'md' };
+  }
+
+  // 章节：第一章
+  const ch = t.match(RE_H_CHAPTER);
+  if (ch) return { level: 1, text: t, kind: 'chapter' };
+
+  // 附件 / 表 / 图（独立成行）
+  const kw = t.match(RE_H_KEYWORD);
+  if (kw && cfg.enable_attachment_formatting !== false) {
+    const word = kw[1].replace(/\s+/g, '');
+    if (word === '附件' || word === '附录') return { level: 5, text: t, kind: 'attachment' };
+    if (word === '表') return { level: 6, text: t, kind: 'table_caption' };
+    if (word === '图') return { level: 7, text: t, kind: 'figure_caption' };
+  }
+
+  // 一、
+  const cnDun = t.match(RE_H_CN_DUN);
+  if (cnDun && cnDun[1].length <= 4) return { level: 1, text: t, kind: 'cn_dun', num: cnDun[1], body: cnDun[2] };
+
+  // （一）
+  const cnParen = t.match(RE_H_CN_PAREN);
+  if (cnParen) return { level: 2, text: t, kind: 'cn_paren', num: cnParen[1], body: cnParen[2] };
+
+  // （1）
+  const cnCircle = t.match(RE_H_CN_CIRCLE);
+  if (cnCircle) {
+    return { level: 4, text: t, kind: 'cn_circle', num: cnCircle[1], body: cnCircle[2] };
+  }
+
+  // 1.1 / 1.1.1（多级）
+  const multi = t.match(RE_H_ARABIC_MULTI);
+  if (multi && multi[1].includes('.')) {
+    const depth = multi[1].split(/[.．]/).filter(Boolean).length;
+    const level = Math.min(4, depth + 1);   // 1.1 → 3 级
+    return { level, text: t, kind: 'arabic_multi', num: multi[1], body: multi[2] };
+  }
+
+  // 1. 或 1、
+  const arabicDot = t.match(RE_H_ARABIC_DOT);
+  if (arabicDot) {
+    return { level: 3, text: t, kind: 'arabic_dot', num: arabicDot[1], body: arabicDot[2] };
+  }
+  const arabicDun = t.match(RE_H_ARABIC_DUN);
+  if (arabicDun) {
+    return { level: 3, text: t, kind: 'arabic_dun', num: arabicDun[1], body: arabicDun[2] };
+  }
+
+  return null;
+}
+
+/**
+ * 阿拉伯/圆圈序号后面的内容是否「像标题」而不是一句正文。
+ * 「1. 具体措施」→ 标题；「1. 各部门要高度重视，认真抓好落实，确保任务完成。」→ 正文序号条目。
+ */
+function isHeadingLike(body) {
+  const b = (body || '').trim();
+  if (!b) return false;
+  if (b.length > 30) return false;
+  if (/[。；！？!?]/.test(b)) return false;
+  if (/[，,].*[，,]/.test(b)) return false;   // 两个以上逗号，像句子
+  if (/[：:]$/.test(b)) return false;          // 「1. 说明：」多为引导句
+  return true;
+}
+
+/**
+ * 段内拆分：标题与正文挤在同一段时切开。
+ * 「1. 统一规划。避免重复建设，确保系统互联互通。」→ 标题「1. 统一规划」+ 正文「避免重复建设…」
+ * 判据：第一个句末标点之前的片段足够短（≤24 字）且其后还有内容。
+ * @returns {{heading:string, body:string}|null}
+ */
+function splitInlineHeading(body) {
+  const b = (body || '').trim();
+  if (!b) return null;
+  const m = b.match(/^(.{1,60}?)([。；！？!?])\s*(.+)$/s);
+  if (!m) return null;
+  const head = m[1].trim();
+  const rest = m[3].trim();
+  if (!head || !rest) return null;
+  if (head.length > 24) return null;          // 太长，不像标题
+  if (rest.length < 2) return null;
+  if (/[，,].*[，,]/.test(head)) return null;   // 标题里不应有多个逗号
+  return { heading: head, body: rest };
+}
+
+/**
+ * 把一段文本解析为「标题(+可能的同段正文)」或「正文」，供 parseText 与 docx 回读共用。
+ * @returns {{type:string, level?:number, text:string, kind?:string, num?:string|null, bodyText?:string|null}|null}
+ *          返回 null 表示不是标题
+ */
+function resolveHeading(text, cfg) {
+  const c = cfg || {};
+  const head = classifyHeading(text, c);
+  if (!head) return null;
+
+  // 附件 / 表 / 图 题注：不参与段内拆分
+  if (head.kind === 'attachment') return { type: 'attachment', text: head.text };
+  if (head.kind === 'table_caption') return { type: 'table_caption', text: head.text };
+  if (head.kind === 'figure_caption') return { type: 'figure_caption', text: head.text };
+  if (head.kind === 'md') {
+    return { type: 'heading', level: Math.max(1, Math.min(4, head.level)), text: head.text, kind: 'md' };
+  }
+  if (head.kind === 'chapter' || head.kind === 'cn_dun' || head.kind === 'cn_paren') {
+    return { type: 'heading', level: Math.max(1, Math.min(4, head.level)), text: head.text, kind: head.kind, num: head.num || null };
+  }
+
+  // 阿拉伯 / 圆圈序号：可能是标题，也可能是「标题+正文同段」
+  if (head.body != null) {
+    const sp = c.split_inline_heading !== false ? splitInlineHeading(head.body) : null;
+    if (sp) {
+      const prefix = head.text.slice(0, head.text.length - head.body.length);
+      return {
+        type: 'heading', level: Math.max(1, Math.min(4, head.level)),
+        text: prefix + sp.heading, kind: head.kind, num: head.num || null,
+        bodyText: sp.body
+      };
+    }
+    if (!isHeadingLike(head.body)) return null;   // 整段其实是正文
+  }
+  return { type: 'heading', level: Math.max(1, Math.min(4, head.level)), text: head.text, kind: head.kind, num: head.num || null };
+}
+
+/** 是否为表格行（含制表符，或多个连续空格分隔的多列，或 markdown 管道） */
+function looksLikeTableRow(line) {
+  if (line.includes('\t') && line.split('\t').filter(s => s.trim()).length >= 2) return true;
+  if (/^\s*\|.*\|\s*$/.test(line)) return true;
+  return false;
+}
+
+function splitTableRow(line) {
+  let s = line.trim();
+  if (/^\|/.test(s)) {
+    s = s.replace(/^\|/, '').replace(/\|$/, '');
+    return s.split('|').map(x => x.trim());
+  }
+  if (s.includes('\t')) return s.split('\t').map(x => x.trim());
+  return s.split(/\s{2,}/).map(x => x.trim());
+}
+
+/* ---------------- 主流程 ---------------- */
+
+/**
+ * 解析纯文本 → 块数组
+ * @param {string} raw
+ * @param {object} cfg
+ * @returns {Array<{type:string, text?:string, level?:number, rows?:string[][], kind?:string}>}
+ */
+function parseText(raw, cfg = {}) {
+  const opts = {
+    strip_markdown: cfg.strip_markdown !== false,
+    normalize_punctuation: cfg.normalize_punctuation !== false,
+    blank_line_mode: cfg.blank_line_mode || 'keep_all',
+    detect_title: cfg.detect_title !== false,
+    detect_headings: cfg.detect_headings !== false,
+    detect_tables: cfg.detect_tables !== false,
+    detect_attachments: cfg.enable_attachment_formatting !== false,
+    split_inline_heading: cfg.split_inline_heading !== false,
+    ...cfg
+  };
+
+  // 统一换行
+  let text = String(raw).replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ');
+
+  // markdown 剥离（逐行，代码围栏内的内容保留原样）
+  if (opts.strip_markdown) {
+    const lines = text.split('\n');
+    const out = [];
+    let inFence = false;
+    for (const line of lines) {
+      if (RE_MD_FENCE.test(line)) { inFence = !inFence; continue; }
+      if (inFence) { out.push(line); continue; }
+      if (RE_MD_HR.test(line)) { out.push(''); continue; }
+      let s = line;
+      s = s.replace(RE_MD_QUOTE, '');
+      s = s.replace(RE_MD_LIST, '');
+      s = stripMarkdownInline(s);
+      out.push(s);
+    }
+    text = out.join('\n');
+  }
+
+  // 空行模式
+  let rawLines = text.split('\n');
+  rawLines = applyBlankLineMode(rawLines, opts.blank_line_mode);
+  text = rawLines.join('\n');
+
+  // 标点标准化
+  if (opts.normalize_punctuation) {
+    text = text.split('\n').map(l => l.trim() ? normalizePunctuation(l) : '').join('\n');
+  }
+
+  // 切块
+  const lines = text.split('\n');
+  const blocks = [];
+  let i = 0;
+  let firstContentSeen = false;
+  let titleDone = false;
+  let subtitleDone = false;
+  /* 主送机关：仅允许出现在主标题（及可能的副标题）之后的第一处内容位置。
+     salutationPending = 已见到主标题、尚未见到主送机关；一旦遇到不匹配的内容段落即关闭，
+     避免正文中段形如「xxx：」的行被误判。 */
+  let salutationDone = false;
+  let salutationPending = false;
+  const headingStack = [];
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // 空行
+    if (!trimmed) {
+      let n = 1;
+      while (i + n < lines.length && !lines[i + n].trim()) n++;
+      blocks.push({ type: 'blank', count: n });
+      i += n;
+      continue;
+    }
+
+    // 表格块
+    if (opts.detect_tables && looksLikeTableRow(line)) {
+      const rows = [];
+      let j = i;
+      while (j < lines.length && lines[j].trim() && looksLikeTableRow(lines[j])) {
+        if (!RE_MD_TABLE_SEP.test(lines[j])) rows.push(splitTableRow(lines[j]));
+        j++;
+      }
+      if (rows.length >= 1) {
+        blocks.push({ type: 'table', rows });
+        i = j;
+        continue;
+      }
+    }
+
+    // 标题（含「标题+正文同段」的段内拆分）
+    const resolved = opts.detect_headings ? resolveHeading(trimmed, opts) : null;
+
+    if (resolved && (resolved.type === 'attachment' || resolved.type === 'table_caption' || resolved.type === 'figure_caption')) {
+      blocks.push({ type: resolved.type, text: resolved.text });
+      firstContentSeen = true;
+      salutationPending = false;
+      i++;
+      continue;
+    }
+
+    if (resolved) {
+      const lv = Math.max(1, Math.min(4, resolved.level));
+      blocks.push({
+        type: 'heading', level: lv, text: resolved.text,
+        kind: resolved.kind, num: resolved.num || null, body: null
+      });
+      headingStack[lv] = (headingStack[lv] || 0) + 1;
+      for (let k = lv + 1; k <= 4; k++) headingStack[k] = 0;
+      // 同段正文拆出来单独成段
+      if (resolved.bodyText) blocks.push({ type: 'body', text: resolved.bodyText });
+      firstContentSeen = true;
+      salutationPending = false;
+      i++;
+      continue;
+    }
+
+    // 主标题：第一个内容段落
+    if (opts.detect_title && !titleDone && !firstContentSeen) {
+      const isShort = trimmed.length <= 60;
+      if (isShort) {
+        blocks.push({ type: 'title', text: trimmed, markdown: /^#\s/.test(line) });
+        titleDone = true;
+        firstContentSeen = true;
+        salutationPending = true;
+        i++;
+        continue;
+      }
+    }
+
+    // 副标题：紧跟主标题（允许中间隔空行）、无句末标点、较短
+    if (opts.detect_title && titleDone && !subtitleDone) {
+      let lastBlock = blocks[blocks.length - 1];
+      if (lastBlock && lastBlock.type === 'blank') lastBlock = blocks[blocks.length - 2];
+      if (lastBlock && lastBlock.type === 'title') {
+        const noEnd = !/[。！？；!?;：:]$/.test(trimmed);
+        if (trimmed.length <= 40 && noEnd && hasCJK(trimmed)) {
+          blocks.push({ type: 'subtitle', text: trimmed });
+          subtitleDone = true;
+          firstContentSeen = true;
+          i++;
+          continue;
+        }
+        subtitleDone = true;
+      }
+    }
+
+    // 主送机关：主标题/副标题之后的「xxx：」行（公文的称呼，顶格、仿宋三号）
+    if (opts.detect_title && titleDone && !salutationDone && salutationPending) {
+      if (trimmed.length <= 60 && RE_SALUTATION_END.test(trimmed) &&
+          hasCJK(trimmed) && !RE_SALUTATION_BAD.test(trimmed)) {
+        blocks.push({ type: 'salutation', text: trimmed });
+        salutationDone = true;
+        firstContentSeen = true;
+        i++;
+        continue;
+      }
+      salutationPending = false;
+    }
+
+    // 普通段落（可能多行合并为一段）
+    let para = trimmed;
+    let k = i + 1;
+    while (k < lines.length && lines[k].trim() && !looksLikeTableRow(lines[k]) &&
+           !(opts.detect_headings && resolveHeading(lines[k].trim(), opts))) {
+      para += lines[k].trim();
+      k++;
+    }
+    blocks.push({ type: 'body', text: para });
+    subtitleDone = true;
+    salutationPending = false;
+    firstContentSeen = true;
+    i = k;
+  }
+
+  return blocks;
+}
+
+/** 空行模式处理 */
+function applyBlankLineMode(lines, mode) {
+  if (mode === 'keep_all') return lines;
+  const out = [];
+  let blankRun = 0;
+  for (const line of lines) {
+    if (!line.trim()) { blankRun++; continue; }
+    if (blankRun > 0) {
+      if (mode === 'delete_single' && blankRun === 1) {
+        // 丢弃
+      } else if (mode === 'keep_single') {
+        out.push('');
+      } else if (mode === 'delete_all') {
+        // 丢弃
+      } else {
+        for (let n = 0; n < blankRun; n++) out.push('');
+      }
+    }
+    blankRun = 0;
+    out.push(line);
+  }
+  if (blankRun > 0 && mode !== 'delete_all' && mode !== 'delete_single' && mode !== 'keep_single') {
+    for (let n = 0; n < blankRun; n++) out.push('');
+  }
+  return out;
+}
+
+/* ---------------- 统计信息（用于界面反馈） ---------------- */
+
+function summarizeBlocks(blocks) {
+  const s = { title: 0, subtitle: 0, salutation: 0, h1: 0, h2: 0, h3: 0, h4: 0, body: 0, table: 0, caption: 0, blank: 0 };
+  for (const b of blocks) {
+    if (b.type === 'title') s.title++;
+    else if (b.type === 'subtitle') s.subtitle++;
+    else if (b.type === 'salutation') s.salutation++;
+    else if (b.type === 'heading') s['h' + b.level]++;
+    else if (b.type === 'table') s.table++;
+    else if (b.type === 'attachment' || b.type === 'table_caption' || b.type === 'figure_caption') s.caption++;
+    else if (b.type === 'blank') s.blank++;
+    else s.body++;
+  }
+  return s;
+}
+
+if (typeof window !== 'undefined') {
+  window.WFPParser = {
+    parseText, classifyHeading, resolveHeading, summarizeBlocks,
+    normalizePunctuation, stripMarkdownInline, applyBlankLineMode,
+    splitTableRow, looksLikeTableRow, hasCJK,
+    isHeadingLike, splitInlineHeading
+  };
+}
+
+
+/* ================= docx.js ================= */
+/* ============================================================
+ * docx.js — DOCX 生成器（手写 OOXML + 零依赖 ZIP）
+ * 输入：parser.js 的块数组 + 配置
+ * 输出：.docx Blob
+ * ============================================================ */
+
+const TWIP_PER_CM = 566.9291338582677;   // 1cm = 566.93 twips
+const TWIP_PER_PT = 20;
+const A4_W = 11906, A4_H = 16838;        // A4 twips
+
+function cm2twip(cm) { return Math.round(Number(cm || 0) * TWIP_PER_CM); }
+function pt2twip(pt) { return Math.round(Number(pt || 0) * TWIP_PER_PT); }
+function pt2half(pt) { return Math.round(Number(pt || 0) * 2); }
+
+function xmlEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+}
+
+/* ---------------- 行距 ---------------- */
+
+/**
+ * 返回 <w:spacing .../> 属性串（不含尖括号）
+ */
+function lineSpacingAttrs(cfg) {
+  const rule = cfg.line_spacing_rule || 'single';
+  let lineAttr = '', lineRule = '';
+  switch (rule) {
+    case 'single':   lineAttr = 240; lineRule = 'auto'; break;
+    case 'onehalf':  lineAttr = 360; lineRule = 'auto'; break;
+    case 'double':   lineAttr = 480; lineRule = 'auto'; break;
+    case 'multiple': lineAttr = Math.round((Number(cfg.line_spacing_value) || 1) * 240); lineRule = 'auto'; break;
+    case 'fixed':    lineAttr = pt2twip(cfg.line_spacing_value || 28); lineRule = 'exact'; break;
+    case 'atLeast':  lineAttr = pt2twip(cfg.line_spacing_value || 28); lineRule = 'atLeast'; break;
+    default:         lineAttr = 240; lineRule = 'auto';
+  }
+  return `w:line="${lineAttr}" w:lineRule="${lineRule}"`;
+}
+
+/** 表格内行距（简化为倍率） */
+function tableLineSpacingAttrs(cfg) {
+  const v = String(cfg.table_line_spacing || 'single');
+  let line = 240;
+  if (v === '1.5') line = 360;
+  else if (v === '2.0') line = 480;
+  else if (/^[\d.]+$/.test(v)) line = Math.round(parseFloat(v) * 240) || 240;
+  return `w:line="${line}" w:lineRule="auto"`;
+}
+
+/* ---------------- 字体 / 字号 ---------------- */
+
+/**
+ * 生成 <w:rPr> 内容（不含外标签）。
+ */
+function makeRPr(opts) {
+  const o = opts || {};
+  const cjk = o.font || '宋体';
+  const en = (o.useEnglish && o.englishFont) ? o.englishFont : cjk;
+  let s = '';
+  s += `<w:rFonts w:ascii="${xmlEsc(en)}" w:hAnsi="${xmlEsc(en)}" w:eastAsia="${xmlEsc(cjk)}" w:cs="${xmlEsc(en)}"/>`;
+  if (o.bold) s += '<w:b/><w:bCs/>';
+  if (o.italic) s += '<w:i/><w:iCs/>';
+  if (o.underline) s += '<w:u w:val="single"/>';
+  if (o.color) s += `<w:color w:val="${xmlEsc(o.color)}"/>`;
+  if (o.size) s += `<w:sz w:val="${pt2half(o.size)}"/><w:szCs w:val="${pt2half(o.size)}"/>`;
+  if (o.spacingChars) s += `<w:spacing w:val="${Math.round(o.spacingChars * 20)}"/>`;
+  return s;
+}
+
+function rPrXml(opts) {
+  const inner = makeRPr(opts);
+  return inner ? `<w:rPr>${inner}</w:rPr>` : '';
+}
+
+/** 文本 → run 序列（自动把连续 ASCII 段落交给英文字体）。此处简化为整体一个 run。 */
+function makeRuns(text, rprOpts) {
+  if (text === '' || text == null) return '';
+  const rpr = rPrXml(rprOpts);
+  return `<w:r>${rpr}<w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r>`;
+}
+
+/* ---------------- 段落 ---------------- */
+
+/**
+ * 生成段落 XML。
+ * @param {object} p
+ *   text, style(可选), align, spacing(rule,value), before, after,
+ *   indentChars, indentLeft, indentRight, outlineLevel, pageBreakBefore,
+ *   keepNext, font, size, bold, color, useEnglish, englishFont, tabs
+ */
+function makeParagraph(p) {
+  const o = p || {};
+  const pPrParts = [];
+  if (o.style) pPrParts.push(`<w:pStyle w:val="${xmlEsc(o.style)}"/>`);
+  if (o.pageBreakBefore) pPrParts.push('<w:pageBreakBefore/>');
+  if (o.keepNext) pPrParts.push('<w:keepNext/>');
+  if (o.keepLines) pPrParts.push('<w:keepLines/>');
+
+  const spacingAttrs = [];
+  if (o.spacing) spacingAttrs.push(lineSpacingAttrs(o.spacing));
+  if (o.before != null) spacingAttrs.push(`w:before="${pt2twip(o.before)}"`);
+  if (o.after != null) spacingAttrs.push(`w:after="${pt2twip(o.after)}"`);
+  if (spacingAttrs.length) pPrParts.push(`<w:spacing ${spacingAttrs.join(' ')}/>`);
+
+  if (o.indentChars || o.indentLeft || o.indentRight || o.indentHanging) {
+    const ind = [];
+    if (o.indentLeft) ind.push(`w:left="${cm2twip(o.indentLeft)}"`);
+    if (o.indentRight) ind.push(`w:right="${cm2twip(o.indentRight)}"`);
+    if (o.indentChars) ind.push(`w:firstLineChars="${Math.round(o.indentChars * 100)}" w:firstLine="${pt2twip(o.indentChars * (o.size || 12))}"`);
+    if (o.indentHanging) ind.push(`w:hangingChars="${Math.round(o.indentHanging * 100)}" w:hanging="${pt2twip(o.indentHanging * (o.size || 12))}"`);
+    pPrParts.push(`<w:ind ${ind.join(' ')}/>`);
+  }
+
+  if (o.align) pPrParts.push(`<w:jc w:val="${o.align}"/>`);
+  if (o.outlineLevel != null && o.outlineLevel >= 0) {
+    pPrParts.push(`<w:outlineLvl w:val="${Math.min(8, o.outlineLevel)}"/>`);
+  }
+  if (o.numId) {
+    pPrParts.push(`<w:numPr><w:ilvl w:val="${o.ilvl || 0}"/><w:numId w:val="${o.numId}"/></w:numPr>`);
+  }
+  if (o.tabs && o.tabs.length) {
+    pPrParts.push('<w:tabs>' + o.tabs.map(t => `<w:tab w:val="${t.val}" w:pos="${t.pos}"/>`).join('') + '</w:tabs>');
+  }
+  if (o.border) {
+    pPrParts.push(`<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="auto"/></w:pBdr>`);
+  }
+  const pPr = pPrParts.length ? `<w:pPr>${pPrParts.join('')}</w:pPr>` : '';
+
+  const body = o.runs != null ? o.runs : makeRuns(o.text, o);
+  return `<w:p>${pPr}${body}</w:p>`;
+}
+
+function makeEmptyParagraph(opts) {
+  const o = opts || {};
+  return makeParagraph({ text: '', size: o.size, spacing: o.spacing });
+}
+
+/* ---------------- 表格 ---------------- */
+
+function makeTable(rows, cfg, pageContentWidth) {
+  if (!rows || !rows.length) return '';
+  const cols = Math.max.apply(null, rows.map(r => r.length));
+  if (cols === 0) return '';
+
+  const borderSz = Math.max(2, Math.round((Number(cfg.table_border_size_pt) || 0.5) * 8));
+  const colW = Math.floor(pageContentWidth / cols);
+
+  let s = '';
+  s += '<w:tbl>';
+  s += '<w:tblPr>';
+  s += `<w:tblW w:w="${cfg.table_width_percent || 100}" w:type="pct"/>`;
+  s += `<w:jc w:val="center"/>`;
+  if (cfg.table_unified_borders !== false) {
+    const b = `<w:top w:val="single" w:sz="${borderSz}" w:space="0" w:color="000000"/>` +
+              `<w:left w:val="single" w:sz="${borderSz}" w:space="0" w:color="000000"/>` +
+              `<w:bottom w:val="single" w:sz="${borderSz}" w:space="0" w:color="000000"/>` +
+              `<w:right w:val="single" w:sz="${borderSz}" w:space="0" w:color="000000"/>` +
+              `<w:insideH w:val="single" w:sz="${borderSz}" w:space="0" w:color="000000"/>` +
+              `<w:insideV w:val="single" w:sz="${borderSz}" w:space="0" w:color="000000"/>`;
+    s += `<w:tblBorders>${b}</w:tblBorders>`;
+  }
+  s += '<w:tblLayout w:type="fixed"/>';
+  s += '<w:tblCellMar>' +
+       '<w:top w:w="28" w:type="dxa"/><w:left w:w="85" w:type="dxa"/>' +
+       '<w:bottom w:w="28" w:type="dxa"/><w:right w:w="85" w:type="dxa"/>' +
+       '</w:tblCellMar>';
+  s += '</w:tblPr>';
+
+  s += '<w:tblGrid>' + Array.from({ length: cols }, () => `<w:gridCol w:w="${colW}"/>`).join('') + '</w:tblGrid>';
+
+  const rowH = cm2twip(cfg.table_row_height_cm || 0);
+
+  rows.forEach((row, ri) => {
+    const isHeader = ri === 0 && cfg.table_header_bold !== false;
+    s += '<w:tr>';
+    if (rowH > 0) s += `<w:trPr><w:trHeight w:val="${rowH}" w:hRule="atLeast"/>${isHeader ? '<w:tblHeader/>' : ''}</w:trPr>`;
+    else if (isHeader) s += '<w:trPr><w:tblHeader/></w:trPr>';
+
+    for (let ci = 0; ci < cols; ci++) {
+      const cell = row[ci] == null ? '' : String(row[ci]);
+      const numeric = /^[\s\d.,%¥$€+\-]+$/.test(cell) && /\d/.test(cell);
+      let align = 'left';
+      if (cfg.table_smart_align !== false && numeric) align = 'center';
+      else if (ci === 0 && row.length > 2) align = 'center';
+
+      const font = isHeader ? (cfg.table_header_font || cfg.table_font) : (cfg.table_font || '仿宋_GB2312');
+      const size = isHeader ? (cfg.table_header_size || cfg.table_size) : (cfg.table_size || 12);
+
+      s += '<w:tc>';
+      s += `<w:tcPr><w:tcW w:w="${colW}" w:type="dxa"/>` +
+           `<w:vAlign w:val="center"/>` +
+           `</w:tcPr>`;
+      s += makeParagraph({
+        text: cell,
+        align: cfg.table_smart_align !== false ? (isHeader ? 'center' : align) : 'left',
+        font, size,
+        bold: isHeader && cfg.table_header_bold !== false,
+        useEnglish: cfg.use_custom_english_font,
+        englishFont: cfg.english_font,
+        before: 1, after: 1,
+        spacing: tableSpacingFor(cfg)
+      });
+      s += '</w:tc>';
+    }
+    s += '</w:tr>';
+  });
+
+  s += '</w:tbl>';
+  // 表格后空段，避免表格粘连
+  s += makeParagraph({ text: '', size: cfg.table_size });
+  return s;
+}
+
+/** 表格行距对象（复用 lineSpacingAttrs 的接口） */
+function tableSpacingFor(cfg) {
+  const v = String(cfg.table_line_spacing || 'single');
+  if (v === 'single') return { line_spacing_rule: 'single' };
+  if (v === '1.5') return { line_spacing_rule: 'onehalf' };
+  if (v === '2.0') return { line_spacing_rule: 'double' };
+  const n = parseFloat(v);
+  if (!isNaN(n)) return { line_spacing_rule: 'multiple', line_spacing_value: n };
+  return { line_spacing_rule: 'single' };
+}
+
+/* ---------------- 自动编号 ---------------- */
+
+const CN_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+
+function toChineseNumber(n) {
+  if (n <= 0) return '零';
+  if (n < 10) return CN_DIGITS[n];
+  if (n === 10) return '十';
+  if (n < 20) return '十' + CN_DIGITS[n % 10];
+  if (n < 100) {
+    const t = Math.floor(n / 10), r = n % 10;
+    return CN_DIGITS[t] + '十' + (r ? CN_DIGITS[r] : '');
+  }
+  return String(n);
+}
+
+function toRoman(n, upper) {
+  const map = [[1000, 'm'], [900, 'cm'], [500, 'd'], [400, 'cd'], [100, 'c'], [90, 'xc'],
+               [50, 'l'], [40, 'xl'], [10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i']];
+  let s = '';
+  let v = n;
+  for (const [val, sym] of map) { while (v >= val) { s += sym; v -= val; } }
+  return upper ? s.toUpperCase() : s;
+}
+
+const NUMBER_STYLE_TPL = {
+  cn_dun:       ['cnDun', 'cnParen', 'arabicDot', 'cnCircle'],
+  cn_paren:     ['cnParen', 'cnCircle', 'arabicDot', 'arabicParen'],
+  cn_circle:    ['cnCircle', 'arabicDot', 'arabicParen', 'arabicParen'],
+  arabic_dot:   ['arabicDot', 'arabicParen', 'arabicParen', 'arabicParen'],
+  arabic_dun:   ['arabicDun', 'arabicParen', 'arabicParen', 'arabicParen'],
+  arabic_multi: ['multi1', 'multi2', 'multi3', 'multi4'],
+  chapter:      ['chapter', 'cnDun', 'cnParen', 'cnCircle']
+};
+
+function formatNumber(kind, counters, level) {
+  const c = counters;
+  switch (kind) {
+    case 'cnDun':        return toChineseNumber(c[0]) + '、';
+    case 'cnParen':      return '（' + toChineseNumber(c[level] || c[0]) + '）';
+    case 'cnCircle':     return '（' + (c[level] || c[0]) + '）';
+    case 'arabicDot':    return (c[level] || c[0]) + '.';
+    case 'arabicDun':    return (c[level] || c[0]) + '、';
+    case 'arabicParen':  return (c[level] || c[0]) + ')';
+    case 'multi1':       return c[0] + '.';
+    case 'multi2':       return c[0] + '.' + c[1];
+    case 'multi3':       return c[0] + '.' + c[1] + '.' + c[2];
+    case 'multi4':       return c[0] + '.' + c[1] + '.' + c[2] + '.' + c[3];
+    case 'chapter':      return '第' + toChineseNumber(c[0]) + '章';
+    default:             return '';
+  }
+}
+
+/** 编号状态机 */
+function createNumberer(cfg) {
+  const style = cfg.number_style || 'cn_dun';
+  const tpl = NUMBER_STYLE_TPL[style] || NUMBER_STYLE_TPL.cn_dun;
+  const counters = [0, 0, 0, 0];
+  return {
+    next(level) {
+      const idx = Math.max(0, Math.min(3, level - 1));
+      counters[idx]++;
+      for (let k = idx + 1; k < 4; k++) counters[k] = 0;
+      const kind = tpl[idx];
+      return { label: formatNumber(kind, counters, idx), ilvl: idx };
+    },
+    reset() { counters[0] = counters[1] = counters[2] = counters[3] = 0; }
+  };
+}
+
+/* ---------------- 角色 → 样式解析 ---------------- */
+
+/** 取某角色的字体/字号/加粗等 */
+function roleStyle(cfg, role) {
+  const fontKey = role + '_font';
+  const sizeKey = role + '_size';
+  const font = cfg[fontKey] || cfg.body_font;
+  const size = cfg[sizeKey] || cfg.body_size;
+  // 加粗：显式配置优先；未配置时沿用内置规则（三级、四级标题加粗）
+  const explicit = cfg[role + '_bold'];
+  const builtinBold = role === 'h3' || role === 'h4' || role === 'table_caption' || role === 'figure_caption';
+  const bold = explicit != null ? explicit === true : builtinBold;
+  return {
+    font, size, bold,
+    useEnglish: cfg.use_custom_english_font !== false,
+    englishFont: cfg.english_font
+  };
+}
+
+/* ---------------- 文档装配 ---------------- */
+
+/**
+ * @param {Array} blocks parser 输出
+ * @param {object} cfg
+ * @returns {{documentXml:string, headerXml:string|null, footerXml:string|null,
+ *            evenHeaderXml:string|null, evenFooterXml:string|null, sectPrExtras:string}}
+ */
+function buildDocumentBody(blocks, cfg) {
+  const pageW = cfg.force_a4 === false ? A4_W : A4_W;
+  const contentW = pageW - cm2twip(cfg.margin_left) - cm2twip(cfg.margin_right);
+
+  const numberer = cfg.auto_numbering ? createNumberer(cfg) : null;
+  const parts = [];
+
+  const bodySpacing = {
+    line_spacing_rule: cfg.line_spacing_rule,
+    line_spacing_value: cfg.line_spacing_value
+  };
+
+  for (const b of blocks) {
+    switch (b.type) {
+      case 'blank': {
+        // 空行 → 一个空段落（可能是多个）
+        const n = Math.max(1, Math.min(6, b.count || 1));
+        for (let k = 0; k < n; k++) {
+          parts.push(makeParagraph({ text: '', size: cfg.body_size, spacing: bodySpacing }));
+        }
+        break;
+      }
+
+      case 'title': {
+        const st = roleStyle(cfg, 'title');
+        parts.push(makeParagraph(Object.assign({}, st, {
+          text: b.text,
+          align: cfg.title_align || 'center',
+          spacing: { line_spacing_rule: 'multiple', line_spacing_value: cfg.title_line_spacing || 1 },
+          before: cfg.title_space_before, after: cfg.title_space_after,
+          outlineLevel: cfg.set_outline ? 0 : null
+        })));
+        break;
+      }
+
+      case 'subtitle': {
+        const st = roleStyle(cfg, 'subtitle');
+        parts.push(makeParagraph(Object.assign({}, st, {
+          text: b.text,
+          align: 'center',
+          spacing: { line_spacing_rule: 'multiple', line_spacing_value: cfg.subtitle_line_spacing || 1 },
+          before: cfg.title_space_before, after: cfg.title_space_after
+        })));
+        break;
+      }
+
+      case 'heading': {
+        const lv = Math.max(1, Math.min(4, b.level || 1));
+        const st = roleStyle(cfg, 'h' + lv);
+        let text = b.text;
+        if (numberer) {
+          const num = numberer.next(lv);
+          // 去掉原有手写序号后加自动编号（编号写进正文文本，保证任何阅读器都显示一致）
+          const stripped = stripLeadingNumber(text);
+          text = num.label + stripped;
+        }
+        const isH1 = lv === 1;
+        parts.push(makeParagraph(Object.assign({}, st, {
+          text,
+          bold: cfg['h' + lv + '_bold'] != null ? cfg['h' + lv + '_bold'] : (st.bold || false),
+          align: lv === 1 ? (cfg.h1_align || 'left') : 'left',
+          spacing: bodySpacing,
+          before: cfg.heading_space_before, after: cfg.heading_space_after,
+          indentChars: (lv === 1 && cfg.h1_indent_chars) ? cfg.h1_indent_chars : 0,
+          indentLeft: cfg.left_indent_cm, indentRight: cfg.right_indent_cm,
+          outlineLevel: cfg.set_outline ? lv - 1 : null,
+          pageBreakBefore: cfg.add_page_break_before_h1 && isH1,
+          keepNext: true
+        })));
+        break;
+      }
+
+      case 'salutation': {
+        /* 主送机关：公文称呼行，顶格、不缩进、左对齐 */
+        const st = roleStyle(cfg, 'salutation');
+        parts.push(makeParagraph(Object.assign({}, st, {
+          text: b.text, align: 'left', spacing: bodySpacing,
+          indentChars: 0, outlineLevel: null
+        })));
+        break;
+      }
+
+      case 'attachment': {
+        const st = roleStyle(cfg, 'attachment');
+        parts.push(makeParagraph(Object.assign({}, st, {
+          text: b.text, align: 'left', spacing: bodySpacing,
+          before: cfg.heading_space_before, after: cfg.heading_space_after,
+          outlineLevel: null, keepNext: true
+        })));
+        break;
+      }
+
+      case 'table_caption':
+      case 'figure_caption': {
+        const role = b.type === 'table_caption' ? 'table_caption' : 'figure_caption';
+        const st = roleStyle(cfg, role);
+        parts.push(makeParagraph(Object.assign({}, st, {
+          text: b.text, align: 'center', spacing: bodySpacing,
+          before: cfg.heading_space_before, after: cfg.heading_space_after,
+          keepNext: b.type === 'table_caption'
+        })));
+        break;
+      }
+
+      case 'table':
+      case 'image': {
+        if (b.type === 'image') {
+          parts.push({ __image: b });
+          break;
+        }
+        if (cfg.enable_table_formatting === false) {
+          for (const row of b.rows) {
+            parts.push(makeParagraph(Object.assign({}, roleStyle(cfg, 'body'), {
+              text: row.join('\t'), spacing: bodySpacing,
+              indentChars: cfg.first_line_indent_chars
+            })));
+          }
+        } else {
+          parts.push(makeTable(b.rows, cfg, contentW));
+        }
+        break;
+      }
+
+      case 'body':
+      default: {
+        const st = roleStyle(cfg, 'body');
+        const indent = (cfg.first_line_indent_chars != null) ? cfg.first_line_indent_chars
+                     : (cfg.body_indent_chars != null ? cfg.body_indent_chars : 2);
+        parts.push(makeParagraph(Object.assign({}, st, {
+          text: b.text,
+          align: cfg.body_align || 'both',
+          spacing: bodySpacing,
+          before: cfg.body_space_before, after: cfg.body_space_after,
+          indentChars: indent,
+          indentLeft: cfg.left_indent_cm, indentRight: cfg.right_indent_cm
+        })));
+        break;
+      }
+    }
+  }
+
+  // 后处理：图片占位 → 实际 XML，并登记关系
+  const images = [];
+  const bodyParts = [];
+  let ridSeq = 100;
+  for (const p of parts) {
+    if (p && p.__image) {
+      const img = p.__image;
+      const rid = ridSeq++;
+      /* 只取文件名：img.name 可能是 "media/image1.png"（回读时带目录），
+         若原样拼进 "media/" 前缀会得到 media/media/image1.png 这种重复路径。 */
+      const baseName = String(img.name || ('image' + rid + '.png')).split('/').pop().split('\\').pop();
+      images.push({ rid, name: baseName, data: img.data, mime: img.mime });
+      bodyParts.push(makeImageParagraph(img, rid, contentW * 635));
+    } else {
+      bodyParts.push(p);
+    }
+  }
+
+  return { body: bodyParts.join(''), contentW, images, maxRid: ridSeq - 1 };
+}
+
+/** 去掉行首已有编号："一、xxx" → "xxx" */
+function stripLeadingNumber(text) {
+  const patterns = [
+    /^\s*[一二三四五六七八九十百]+\s*[、.．]\s*/,
+    /^\s*[（(]\s*[一二三四五六七八九十百\d]+\s*[）)]\s*/,
+    /^\s*\d{1,2}(?:[.．]\d{1,2}){1,3}\s*[.．、]?\s*/,
+    /^\s*\d{1,2}\s*[、.．]\s*/,
+    /^\s*第\s*[一二三四五六七八九十百\d]+\s*[章节部分篇]\s*/
+  ];
+  let s = text;
+  for (const p of patterns) { s = s.replace(p, ''); }
+  return s;
+}
+
+/* ---------------- 页眉 / 页脚 ---------------- */
+
+function buildFooter(cfg, position, pageFmt) {
+  const align = position === 'footer_right' || position === 'header_right' ? 'right'
+              : position === 'footer_outer' ? 'right' : 'center';
+
+  const prefix = cfg.page_number_prefix || '';
+  const suffix = cfg.page_number_suffix || '';
+  const fldFmt = pageFmt === 'chinese' ? 'chineseCounting'
+               : pageFmt === 'roman' ? 'upperRoman' : 'decimal';
+
+  // PAGE 域
+  const fieldRuns =
+    `<w:r>${rPrXml({ font: cfg.page_number_font, size: cfg.page_number_size, useEnglish: cfg.use_custom_english_font, englishFont: cfg.english_font })}` +
+    `<w:t xml:space="preserve">${xmlEsc(prefix)}</w:t></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="begin"/></w:r>` +
+    `<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="separate"/></w:r>` +
+    `<w:r><w:t>1</w:t></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="end"/></w:r>` +
+    `<w:r><w:t xml:space="preserve">${xmlEsc(suffix)}</w:t></w:r>`;
+
+  const p = `<w:p><w:pPr><w:jc w:val="${align}"/><w:spacing w:line="240" w:lineRule="auto"/></w:pPr>${fieldRuns}</w:p>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${p}</w:ftr>`;
+}
+
+function buildEvenFooter(cfg, pageFmt) {
+  const prefix = cfg.page_number_prefix || '';
+  const suffix = cfg.page_number_suffix || '';
+  const fieldRuns =
+    `<w:r>${rPrXml({ font: cfg.page_number_font, size: cfg.page_number_size })}<w:t xml:space="preserve">${xmlEsc(prefix)}</w:t></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="begin"/></w:r>` +
+    `<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="separate"/></w:r>` +
+    `<w:r><w:t>2</w:t></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="end"/></w:r>` +
+    `<w:r><w:t xml:space="preserve">${xmlEsc(suffix)}</w:t></w:r>`;
+  const p = `<w:p><w:pPr><w:jc w:val="left"/><w:spacing w:line="240" w:lineRule="auto"/></w:pPr>${fieldRuns}</w:p>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${p}</w:ftr>`;
+}
+
+function buildHeader(cfg, even) {
+  const align = cfg.header_align || 'center';
+  const boxW = A4_W - cm2twip(cfg.margin_left) - cm2twip(cfg.margin_right);
+  let p;
+  if (cfg.enable_header && cfg.header_text) {
+    const lines = String(cfg.header_text).split('\n');
+    p = lines.map(line => makeParagraph({
+      text: line,
+      align,
+      font: cfg.header_font || '宋体',
+      size: cfg.header_size || 14,
+      useEnglish: cfg.use_custom_english_font,
+      englishFont: cfg.english_font,
+      spacing: { line_spacing_rule: 'single' },
+      border: cfg.header_underline === true
+    })).join('');
+  } else {
+    // 空页眉，保证 headerReference 有效
+    p = `<w:p><w:pPr><w:jc w:val="${align}"/><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:p>`;
+  }
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${p}</w:hdr>`;
+}
+
+/* ---------------- 静态部件 ---------------- */
+
+const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+const NS_W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+
+const CONTENT_TYPES = XML_DECL +
+`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>
+<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+<Override PartName="/word/header2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+<Override PartName="/word/footer2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>`;
+
+const RELS_ROOT = XML_DECL +
+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>`;
+
+const DOC_RELS_BASE = (extra) => XML_DECL +
+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>
+<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
+<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>
+<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header2.xml"/>
+<Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer2.xml"/>
+${extra || ''}
+</Relationships>`;
+
+function buildStyles(cfg) {
+  const defFont = cfg.body_font || '宋体';
+  const defSize = pt2half(cfg.body_size || 12);
+  const enFont = cfg.use_custom_english_font !== false ? (cfg.english_font || defFont) : defFont;
+  return XML_DECL +
+`<w:styles ${NS_W}>
+<w:docDefaults>
+<w:rPrDefault><w:rPr>
+<w:rFonts w:ascii="${xmlEsc(enFont)}" w:hAnsi="${xmlEsc(enFont)}" w:eastAsia="${xmlEsc(defFont)}" w:cs="${xmlEsc(enFont)}"/>
+<w:sz w:val="${defSize}"/><w:szCs w:val="${defSize}"/>
+<w:lang w:val="en-US" w:eastAsia="zh-CN" w:bidi="ar-SA"/>
+</w:rPr></w:rPrDefault>
+<w:pPrDefault><w:pPr><w:widowControl w:val="0"/><w:jc w:val="both"/></w:pPr></w:pPrDefault>
+</w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+<w:name w:val="Normal"/><w:qFormat/>
+<w:pPr><w:widowControl w:val="0"/><w:jc w:val="both"/></w:pPr>
+<w:rPr><w:rFonts w:ascii="${xmlEsc(enFont)}" w:hAnsi="${xmlEsc(enFont)}" w:eastAsia="${xmlEsc(defFont)}"/><w:sz w:val="${defSize}"/></w:rPr>
+</w:style>
+<w:style w:type="paragraph" w:styleId="TableNormal">
+<w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/>
+<w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>
+</w:style>
+</w:styles>`;
+}
+
+function buildSettings(cfg) {
+  const evenOdd = cfg.page_number_position === 'footer_outer' || cfg.header_even_odd === true;
+  return XML_DECL +
+`<w:settings ${NS_W}>
+<w:zoom w:percent="100"/>
+<w:defaultTabStop w:val="420"/>
+${evenOdd ? '<w:evenAndOddHeaders/>' : ''}
+<w:characterSpacingControl w:val="compressPunctuation"/>
+<w:compat>
+<w:useFELayout/>
+<w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>
+</w:compat>
+</w:settings>`;
+}
+
+function buildFontTable(cfg) {
+  const fonts = new Set();
+  for (const k of Object.keys(cfg)) {
+    if (/_font$/.test(k) && typeof cfg[k] === 'string' && cfg[k]) fonts.add(cfg[k]);
+  }
+  fonts.add('宋体'); fonts.add('Times New Roman');
+  const items = Array.from(fonts).map((f, i) =>
+    `<w:font w:name="${xmlEsc(f)}"><w:charset w:val="86"/><w:family w:val="auto"/><w:pitch w:val="variable"/></w:font>`
+  ).join('');
+  return XML_DECL + `<w:fonts ${NS_W}>${items}</w:fonts>`;
+}
+
+function buildCore(cfg) {
+  const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const title = cfg.document_title || '排版文档';
+  return XML_DECL +
+`<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<dc:title>${xmlEsc(title)}</dc:title>
+<dc:creator>${xmlEsc(cfg.document_author || '')}</dc:creator>
+<cp:lastModifiedBy>${xmlEsc(cfg.document_author || '')}</cp:lastModifiedBy>
+<dc:subject>${xmlEsc(cfg.document_subject || '')}</dc:subject>
+<dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>
+<dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>
+</cp:coreProperties>`;
+}
+
+function buildApp() {
+  return XML_DECL +
+`<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+<Application>Text Formatter</Application>
+<DocSecurity>0</DocSecurity>
+<ScaleCrop>false</ScaleCrop>
+<Company></Company>
+<AppVersion>1.0000</AppVersion>
+</Properties>`;
+}
+
+/* ---------------- 图片 ---------------- */
+
+const EMU_PER_CM = 360000;
+const EMU_PER_PX = 9525;
+
+/** 图片扩展名 → MIME */
+const MIME_BY_FILE = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', webp: 'image/webp',
+  emf: 'image/x-emf', wmf: 'image/x-wmf', svg: 'image/svg+xml'
+};
+
+/**
+ * 生成内嵌图片段落。
+ * @param {{name:string, w?:number, h?:number, alt?:string}} img
+ * @param {number} ridNum
+ * @param {number} maxWidthEmu 可用内容宽度（EMU）
+ */
+function makeImageParagraph(img, ridNum, maxWidthEmu) {
+  let cx = img.w || 0, cy = img.h || 0;
+  if (!cx || !cy) { cx = 400 * EMU_PER_PX; cy = 300 * EMU_PER_PX; }
+
+  const pageMax = maxWidthEmu || (A4_W - cm2twip(2.8) - cm2twip(2.6)) * 635; // twip→EMU 近似
+  if (cx > pageMax) {
+    const ratio = pageMax / cx;
+    cx = Math.round(cx * ratio);
+    cy = Math.round(cy * ratio);
+  }
+
+  const docPrId = 1000 + ridNum;
+  const name = xmlEsc(img.alt || img.name || ('图片' + ridNum));
+
+  const drawing =
+    `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:drawing>` +
+    `<wp:inline distT="0" distB="0" distL="0" distR="0">` +
+    `<wp:extent cx="${cx}" cy="${cy}"/>` +
+    `<wp:effectExtent l="0" t="0" r="0" b="0"/>` +
+    `<wp:docPr id="${docPrId}" name="${name}"/>` +
+    `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>` +
+    `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
+    `<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:nvPicPr><pic:cNvPr id="${docPrId}" name="${name}"/><pic:cNvPicPr/></pic:nvPicPr>` +
+    `<pic:blipFill><a:blip r:embed="rId${ridNum}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+    `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
+    `</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+
+  return drawing;
+}
+
+/* ---------------- 主入口 ---------------- */
+
+/**
+ * 由块数组生成 .docx Blob
+ * @param {Array} blocks
+ * @param {object} cfg
+ */
+async function buildDocx(blocks, cfg) {
+  const Zip = window.WFPZip;
+  if (!Zip) throw new Error('ZIP 模块未加载');
+
+  const { body, contentW, images } = buildDocumentBody(blocks, cfg);
+
+  const showPageNumber = (cfg.page_number_format || 'arabic') !== 'none';
+  const fmt = cfg.page_number_format || 'arabic';
+  const pos = cfg.page_number_position || 'footer_center';
+  const useEvenOdd = pos === 'footer_outer';
+  const inHeader = pos.indexOf('header_') === 0;
+
+  const pgNumFmtAttr = fmt === 'chinese' ? 'chineseCounting' : fmt === 'roman' ? 'upperRoman' : 'decimal';
+  const start = Math.max(1, parseInt(cfg.page_number_start, 10) || 1);
+
+  let sectExtras = '';
+  if (showPageNumber) {
+    sectExtras += `<w:pgNumType w:fmt="${pgNumFmtAttr}" w:start="${start}"/>`;
+  }
+  sectExtras += `<w:headerReference w:type="default" r:id="rId4"/>`;
+  if (useEvenOdd) sectExtras += `<w:headerReference w:type="even" r:id="rId6"/>`;
+  sectExtras += `<w:footerReference w:type="default" r:id="rId5"/>`;
+  if (useEvenOdd) sectExtras += `<w:footerReference w:type="even" r:id="rId7"/>`;
+
+  const sectPr =
+    `<w:sectPr>` +
+    sectExtras +
+    `<w:pgSz w:w="${A4_W}" w:h="${A4_H}"/>` +
+    `<w:pgMar w:top="${cm2twip(cfg.margin_top)}" w:right="${cm2twip(cfg.margin_right)}" ` +
+    `w:bottom="${cm2twip(cfg.margin_bottom)}" w:left="${cm2twip(cfg.margin_left)}" ` +
+    `w:header="${cm2twip(cfg.header_distance || 1.5)}" w:footer="${cm2twip(cfg.footer_distance)}" w:gutter="${cm2twip(cfg.gutter || 0)}"/>` +
+    `<w:cols w:space="425"/>` +
+    `<w:docGrid w:type="lines" w:linePitch="312"/>` +
+    `</w:sectPr>`;
+
+  const documentXml = XML_DECL +
+    `<w:document ${NS_W} xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">` +
+    `<w:body>${body}${sectPr}</w:body></w:document>`;
+
+  let headerXml = buildHeader(cfg, false);
+  let footerXml = XML_DECL + `<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p/></w:ftr>`;
+  if (showPageNumber && !inHeader) {
+    footerXml = buildFooter(cfg, pos, fmt);
+  }
+
+  // 页码放页眉时：把 PAGE 域加到页眉
+  if (showPageNumber && inHeader) {
+    headerXml = buildHeaderWithPageNumber(cfg, pos, fmt);
+  }
+
+  const evenFooterXml = useEvenOdd ? buildEvenFooter(cfg, fmt) : footerXml;
+  const evenHeaderXml = headerXml;
+
+  // —— 图片关系与媒体部件 ——
+  const relExtra = [];
+  const mediaFiles = [];
+  const extSeen = {};
+  (images || []).forEach((im) => {
+    const ext = (im.name.split('.').pop() || 'png').toLowerCase();
+    extSeen[ext] = MIME_BY_FILE[ext] || 'image/png';
+    relExtra.push(`<Relationship Id="rId${im.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${im.name}"/>`);
+    mediaFiles.push({ name: 'word/media/' + im.name, data: im.data });
+  });
+
+  // 内容类型：为用到的图片扩展名补充 Default
+  let contentTypes = CONTENT_TYPES;
+  const extraDefaults = Object.keys(extSeen)
+    .filter(ext => !/Extension="(rels|xml)"/.test(contentTypes.split('<Default')[1] || '') || !contentTypes.includes(`Extension="${ext}"`))
+    .filter(ext => !contentTypes.includes(`Extension="${ext}"`))
+    .map(ext => `<Default Extension="${ext}" ContentType="${extSeen[ext]}"/>`)
+    .join('');
+  if (extraDefaults) {
+    contentTypes = contentTypes.replace('</Types>', extraDefaults + '</Types>');
+  }
+
+  const files = [
+    { name: '[Content_Types].xml', data: contentTypes },
+    { name: '_rels/.rels', data: RELS_ROOT },
+    { name: 'docProps/core.xml', data: buildCore(cfg) },
+    { name: 'docProps/app.xml', data: buildApp() },
+    { name: 'word/_rels/document.xml.rels', data: DOC_RELS_BASE(relExtra.join('')) },
+    { name: 'word/document.xml', data: documentXml },
+    { name: 'word/styles.xml', data: buildStyles(cfg) },
+    { name: 'word/settings.xml', data: buildSettings(cfg) },
+    { name: 'word/fontTable.xml', data: buildFontTable(cfg) },
+    { name: 'word/header1.xml', data: headerXml },
+    { name: 'word/header2.xml', data: evenHeaderXml },
+    { name: 'word/footer1.xml', data: footerXml },
+    { name: 'word/footer2.xml', data: evenFooterXml }
+  ].concat(mediaFiles);
+
+  return await Zip.makeZip(files, { compress: true });
+}
+
+function buildHeaderWithPageNumber(cfg, pos, fmt) {
+  const align = pos === 'header_right' ? 'right' : 'center';
+  const prefix = cfg.page_number_prefix || '';
+  const suffix = cfg.page_number_suffix || '';
+  const parts = [];
+  if (cfg.enable_header && cfg.header_text) {
+    for (const line of String(cfg.header_text).split('\n')) {
+      parts.push(makeParagraph({
+        text: line, align, font: cfg.header_font || '宋体', size: cfg.header_size || 14,
+        useEnglish: cfg.use_custom_english_font, englishFont: cfg.english_font,
+        spacing: { line_spacing_rule: 'single' }
+      }));
+    }
+  }
+  parts.push(
+    `<w:p><w:pPr><w:jc w:val="${align}"/><w:spacing w:line="240" w:lineRule="auto"/></w:pPr>` +
+    `<w:r>${rPrXml({ font: cfg.page_number_font, size: cfg.page_number_size })}<w:t xml:space="preserve">${xmlEsc(prefix)}</w:t></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="begin"/></w:r>` +
+    `<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="separate"/></w:r>` +
+    `<w:r><w:t>1</w:t></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="end"/></w:r>` +
+    `<w:r><w:t xml:space="preserve">${xmlEsc(suffix)}</w:t></w:r>` +
+    `</w:p>`
+  );
+  return XML_DECL + `<w:hdr ${NS_W}>${parts.join('')}</w:hdr>`;
+}
+
+if (typeof window !== 'undefined') {
+  window.WFPDocx = {
+    buildDocx, buildDocumentBody, makeParagraph, makeTable, makeRuns, rPrXml,
+    toChineseNumber, toRoman, createNumberer, stripLeadingNumber,
+    cm2twip, pt2twip, xmlEsc
+  };
+}
+
+
+/* ================= docx-read.js ================= */
+/* ============================================================
+ * docx-read.js — 读取已有 .docx，抽取文本/表格/图片 → 块数组
+ * 用于「重新排版已有文档」。
+ * 依赖：zip.js。解析用 DOMParser（无外部依赖）。
+ * ============================================================ */
+
+const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+const A_NS = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+const WP_NS = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing';
+const PIC_NS = 'http://schemas.openxmlformats.org/drawingml/2006/picture';
+
+function parseXml(text) {
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  const err = doc.querySelector('parsererror');
+  if (err) throw new Error('XML 解析失败：' + err.textContent.slice(0, 200));
+  return doc;
+}
+
+function wEl(node, name) {
+  return node.getElementsByTagNameNS(W_NS, name);
+}
+
+/** 取段落文本（含 tab / br 处理） */
+function getParagraphText(p) {
+  let s = '';
+  const walk = (node) => {
+    for (const child of node.childNodes) {
+      if (child.nodeType === 1) {
+        const ln = child.localName;
+        if (child.namespaceURI === W_NS) {
+          if (ln === 't') s += child.textContent;
+          else if (ln === 'tab') s += '\t';
+          else if (ln === 'br') s += '\n';
+          else if (ln === 'cr') s += '\n';
+          else if (ln === 'drawing' || ln === 'pict' || ln === 'object') { /* 图片单独处理 */ }
+          else if (ln === 'fldSimple') { s += child.textContent; }
+          else if (ln === 'instrText') { /* 域代码忽略 */ }
+          else walk(child);
+        }
+      }
+    }
+  };
+  walk(p);
+  return s.replace(/\u0007/g, '');
+}
+
+/** 段落样式 → 角色推断 */
+function inferRole(p) {
+  const pPr = Array.from(p.childNodes).find(n => n.nodeType === 1 && n.localName === 'pPr');
+  if (!pPr) return null;
+  const style = Array.from(pPr.childNodes).find(n => n.nodeType === 1 && n.localName === 'pStyle');
+  const styleId = style ? (style.getAttributeNS(W_NS, 'val') || style.getAttribute('w:val')) : null;
+
+  const outline = Array.from(pPr.childNodes).find(n => n.nodeType === 1 && n.localName === 'outlineLvl');
+  const lvlRaw = outline ? (outline.getAttributeNS(W_NS, 'val') || outline.getAttribute('w:val')) : null;
+  const lvl = lvlRaw != null ? parseInt(lvlRaw, 10) : null;
+
+  const jcEl = Array.from(pPr.childNodes).find(n => n.nodeType === 1 && n.localName === 'jc');
+  const jc = jcEl ? (jcEl.getAttributeNS(W_NS, 'val') || jcEl.getAttribute('w:val')) : null;
+
+  if (styleId) {
+    const s = styleId.toLowerCase();
+    if (/^(heading|标题)\s*([1-9])/.test(s) || /^h[1-9]$/.test(s)) {
+      const m = s.match(/([1-9])/);
+      const lv = m ? parseInt(m[1], 10) : 1;
+      return { role: 'h' + Math.min(4, lv), align: jc };
+    }
+    if (/^(title|标题)$/.test(s) || s === 'title') return { role: 'title', align: jc };
+    if (/^(subtitle|副标题)$/.test(s)) return { role: 'subtitle', align: jc };
+  }
+  if (lvl != null && !isNaN(lvl) && lvl >= 0 && lvl <= 3) {
+    return { role: 'h' + (lvl + 1), align: jc };
+  }
+  return { role: null, align: jc };
+}
+
+/** 取段落在文档流中的图片 */
+function extractImages(p, relMap) {
+  const out = [];
+  const drawings = p.getElementsByTagNameNS(W_NS, 'drawing');
+  for (const d of drawings) {
+    const blips = d.getElementsByTagNameNS(A_NS, 'blip');
+    for (const b of blips) {
+      const embed = b.getAttributeNS(R_NS, 'embed') || b.getAttribute('r:embed');
+      if (!embed || !relMap[embed]) continue;
+      let w = 0, h = 0;
+      const exts = d.getElementsByTagNameNS(WP_NS, 'extent');
+      if (exts.length) {
+        w = parseInt(exts[0].getAttribute('cx'), 10) || 0;
+        h = parseInt(exts[0].getAttribute('cy'), 10) || 0;
+      }
+      out.push({ type: 'image', rid: embed, target: relMap[embed], w, h });
+    }
+  }
+  // 旧式 VML 图片
+  const picts = p.getElementsByTagNameNS(W_NS, 'pict');
+  for (const pic of picts) {
+    const imgs = pic.getElementsByTagNameNS('urn:schemas-microsoft-com:vml', 'imagedata');
+    for (const im of imgs) {
+      const embed = im.getAttributeNS(R_NS, 'id') || im.getAttribute('r:id');
+      if (!embed || !relMap[embed]) continue;
+      out.push({ type: 'image', rid: embed, target: relMap[embed], w: 0, h: 0 });
+    }
+  }
+  return out;
+}
+
+/** 解析表格 → 二维数组 */
+function extractTable(tbl) {
+  const rows = [];
+  const trs = Array.from(tbl.childNodes).filter(n => n.nodeType === 1 && n.localName === 'tr');
+  for (const tr of trs) {
+    const cells = [];
+    const tcs = Array.from(tr.childNodes).filter(n => n.nodeType === 1 && n.localName === 'tc');
+    for (const tc of tcs) {
+      const ps = Array.from(tc.childNodes).filter(n => n.nodeType === 1 && n.localName === 'p');
+      const txt = ps.map(getParagraphText).join(' ').trim();
+      const span = tc.getElementsByTagNameNS(W_NS, 'gridSpan');
+      const n = span.length ? (parseInt(span[0].getAttributeNS(W_NS, 'val') || span[0].getAttribute('w:val'), 10) || 1) : 1;
+      cells.push(txt);
+      for (let k = 1; k < n; k++) cells.push('');
+    }
+    rows.push(cells);
+  }
+  return rows;
+}
+
+const MIME_BY_EXT = {
+  png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', webp: 'image/webp',
+  emf: 'image/x-emf', wmf: 'image/x-wmf', svg: 'image/svg+xml'
+};
+
+/**
+ * 读取 .docx → { blocks, images, styles, warnings }
+ * @param {ArrayBuffer|Uint8Array} buf
+ */
+async function readDocx(buf) {
+  const Zip = window.WFPZip;
+  const files = await Zip.readZip(buf);
+  const warnings = [];
+
+  const docFile = files['word/document.xml'];
+  if (!docFile) throw new Error('不是有效的 .docx：缺少 word/document.xml');
+
+  const docXml = Zip.fromUtf8(docFile);
+  const doc = parseXml(docXml);
+
+  // 关系映射
+  const relMap = {};
+  if (files['word/_rels/document.xml.rels']) {
+    const rels = parseXml(Zip.fromUtf8(files['word/_rels/document.xml.rels']));
+    const rs = rels.getElementsByTagName('Relationship');
+    for (const r of rs) {
+      const id = r.getAttribute('Id');
+      const target = r.getAttribute('Target');
+      const mode = r.getAttribute('TargetMode');
+      if (id && target && mode !== 'External') {
+        relMap[id] = target.replace(/^\.\//, '').replace(/^\/word\//, '');
+      }
+    }
+  }
+
+  const body = doc.getElementsByTagNameNS(W_NS, 'body')[0];
+  if (!body) throw new Error('文档缺少 body');
+
+  const blocks = [];
+  const images = {};       // name → Uint8Array
+  let imageIndex = 0;
+  let titleSeen = false;   // 是否已确定主标题（用于把居中首段认成标题而非一级标题）
+  let salutationSeen = false;  // 主送机关只允许出现一次，且紧邻主标题
+  let sinceTitle = 0;      // 主标题之后已跨过的内容段落数
+
+  const handleParagraph = (p) => {
+    const text = getParagraphText(p).trim();
+    const imgs = extractImages(p, relMap);
+    const info = inferRole(p);
+
+    if (imgs.length) {
+      for (const im of imgs) {
+        const src = files['word/' + im.target] || files[im.target];
+        if (!src) continue;
+        const ext = (im.target.split('.').pop() || 'png').toLowerCase();
+        const name = `media/image${++imageIndex}.${ext}`;
+        images[name] = src;
+        blocks.push({
+          type: 'image', name,
+          mime: MIME_BY_EXT[ext] || 'application/octet-stream',
+          w: im.w, h: im.h,
+          text
+        });
+      }
+      if (!text) return;
+    }
+
+    if (!text) { blocks.push({ type: 'blank', count: 1 }); return; }
+
+    // 主标题判定：文档第一个有内容的段落，若居中且是 Heading1/outline 0，认成主标题
+    const centered = info && info.align === 'center';
+    if (!titleSeen) {
+      if ((info && info.role === 'title') ||
+          (centered && (info.role === 'h1' || info.role === null))) {
+        blocks.push({ type: 'title', text, align: 'center' });
+        titleSeen = true;
+        return;
+      }
+      titleSeen = true;   // 首段不是居中标题，之后不再把居中段当标题
+    }
+    if (info && info.role === 'title') blocks.push({ type: 'title', text });
+    else if (info && info.role === 'subtitle') { blocks.push({ type: 'subtitle', text }); sinceTitle++; }
+    else if (info && /^h[1-4]$/.test(info.role)) {
+      blocks.push({ type: 'heading', level: parseInt(info.role[1], 10), text, kind: 'style' });
+      sinceTitle++;
+    } else {
+      /* 主送机关：紧跟主标题（允许一个副标题）之后的「xxx：」行，顶格、无句末标点。
+         回读时必须还原，否则「各部门、各直属单位：」会被当成正文并缩进两格。 */
+      if (titleSeen && !salutationSeen && sinceTitle <= 1 &&
+          text.length <= 60 && /[：:]$/.test(text) && !/[。！？!?；;]/.test(text) &&
+          window.WFPParser.hasCJK(text)) {
+        blocks.push({ type: 'salutation', text });
+        salutationSeen = true;
+        sinceTitle++;
+        return;
+      }
+      // 用文本特征判断（复用 parser 的识别，含段内拆分）
+      const P = window.WFPParser;
+      const r = P.resolveHeading(text, { split_inline_heading: true });
+      if (r) {
+        if (r.type === 'heading') {
+          blocks.push({ type: 'heading', level: r.level, text: r.text, kind: r.kind });
+          if (r.bodyText) blocks.push({ type: 'body', text: r.bodyText });
+        } else {
+          blocks.push({ type: r.type, text: r.text });
+        }
+      } else {
+        blocks.push({ type: 'body', text });
+      }
+      sinceTitle++;
+    }
+  };
+
+  // 按文档顺序遍历 body 直接子元素
+  const walkBody = (parent) => {
+    for (const node of parent.childNodes) {
+      if (node.nodeType !== 1 || node.namespaceURI !== W_NS) continue;
+      const ln = node.localName;
+      if (ln === 'p') handleParagraph(node);
+      else if (ln === 'tbl') {
+        const rows = extractTable(node);
+        if (rows.length) blocks.push({ type: 'table', rows });
+      } else if (ln === 'sdt') {
+        const content = node.getElementsByTagNameNS(W_NS, 'sdtContent')[0];
+        if (content) walkBody(content);
+      } else if (ln === 'sectPr') {
+        // 忽略
+      }
+    }
+  };
+  walkBody(body);
+
+  // 合并连续空行
+  const merged = [];
+  for (const b of blocks) {
+    const last = merged[merged.length - 1];
+    if (b.type === 'blank' && last && last.type === 'blank') last.count += b.count;
+    else merged.push(b);
+  }
+
+  if (Object.keys(images).length) {
+    warnings.push(`已保留 ${Object.keys(images).length} 张图片`);
+  }
+
+  return { blocks: merged, images, warnings };
+}
+
+/** 读取 .txt / .md / .rtf / .html 文本型文件 */
+function readPlainText(buf) {
+  const Zip = window.WFPZip;
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+
+  // BOM 检测
+  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return { text: Zip.fromUtf8(bytes.subarray(3)), encoding: 'UTF-8' };
+  }
+  if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+    return { text: new TextDecoder('utf-16le').decode(bytes.subarray(2)), encoding: 'UTF-16LE' };
+  }
+  if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+    return { text: new TextDecoder('utf-16be').decode(bytes.subarray(2)), encoding: 'UTF-16BE' };
+  }
+
+  // 尝试 UTF-8 严格解码，失败则回退 GBK
+  try {
+    const dec = new TextDecoder('utf-8', { fatal: true });
+    return { text: dec.decode(bytes), encoding: 'UTF-8' };
+  } catch (e) {
+    try {
+      return { text: new TextDecoder('gbk').decode(bytes), encoding: 'GBK' };
+    } catch (e2) {
+      return { text: Zip.fromUtf8(bytes), encoding: 'UTF-8(容错)' };
+    }
+  }
+}
+
+/* ---------------- 旧格式检测 ---------------- */
+
+/**
+ * 识别文件真实类型（因为扩展名常不可靠）
+ * @returns {{kind:string, note:string, canParse:boolean}}
+ */
+function detectFormat(bytes, filename) {
+  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const ext = (filename || '').split('.').pop().toLowerCase();
+  const head4 = b.length >= 4 ? (b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24)) >>> 0 : 0;
+
+  // ZIP / OOXML
+  if (b[0] === 0x50 && b[1] === 0x4B && (b[2] === 0x03 || b[2] === 0x05 || b[2] === 0x07)) {
+    return { kind: 'docx', note: 'OOXML 包（.docx/.docm）', canParse: true };
+  }
+  // OLE2 复合文档
+  if (b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0) {
+    return {
+      kind: 'ole',
+      note: '二进制 .doc/.wps（OLE2 复合文档）',
+      canParse: false,
+      hint: '这是 Word 97-2003 二进制格式，浏览器无法直接解析。请在 Word/WPS 中「另存为 → .docx」后再拖入。'
+    };
+  }
+  // RTF
+  if (b[0] === 0x7B && b[1] === 0x5C && b[2] === 0x72 && b[3] === 0x74) {
+    return { kind: 'rtf', note: 'RTF 格式', canParse: true };
+  }
+  // HTML
+  const txt = new TextDecoder('utf-8', { fatal: false }).decode(b.subarray(0, 2048)).trim().toLowerCase();
+  if (txt.startsWith('<!doctype html') || txt.startsWith('<html') || txt.includes('<body')) {
+    return { kind: 'html', note: 'HTML 格式', canParse: true };
+  }
+  if (/^%pdf/.test(new TextDecoder('latin1').decode(b.subarray(0, 4)))) {
+    return { kind: 'pdf', note: 'PDF 文件', canParse: false,
+             hint: 'PDF 不是文字处理格式，浏览器无法还原其段落结构。请先用 Word/WPS 转为 .docx 或直接复制文本粘贴。' };
+  }
+  if (ext === 'docx') return { kind: 'docx', note: '按扩展名判定为 .docx', canParse: true };
+  if (ext === 'md' || ext === 'markdown' || ext === 'txt') return { kind: 'text', note: '纯文本', canParse: true };
+  return { kind: 'text', note: '按纯文本处理', canParse: true };
+}
+
+/** RTF → 纯文本（轻量解析） */
+function rtfToText(rtf) {
+  let s = String(rtf);
+  // 去掉不可见组
+  s = s.replace(/\{\\\*[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, '');
+  // 十六进制转义 \'xx
+  const bytes = [];
+  s = s.replace(/\\'([0-9a-fA-F]{2})/g, (m, h) => {
+    const code = parseInt(h, 16);
+    if (code >= 0x80) { bytes.push(code); return '\u0000' + (bytes.length - 1) + '\u0000'; }
+    return String.fromCharCode(code);
+  });
+  s = s.replace(/\\u(-?\d+)\s?\??/g, (m, d) => String.fromCharCode(parseInt(d, 10) < 0 ? parseInt(d, 10) + 65536 : parseInt(d, 10)));
+  s = s.replace(/\\par[d]?\b/g, '\n').replace(/\\line\b/g, '\n').replace(/\\tab\b/g, '\t');
+  s = s.replace(/\\[a-zA-Z]+-?\d*\s?/g, '');
+  s = s.replace(/[{}]/g, '');
+  s = s.replace(/\\[^a-zA-Z]/g, (m) => m[1] || '');
+  // 还原 GBK 字节
+  if (bytes.length) {
+    let out = '';
+    let i = 0;
+    const parts = s.split('\u0000');
+    for (let k = 0; k < parts.length; k++) {
+      out += parts[k];
+      if (k < bytes.length) out += String.fromCharCode(bytes[k]);
+    }
+    s = out;
+  }
+  return s.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/** HTML → 纯文本（保留段落与表格结构） */
+function htmlToText(html) {
+  const doc = new DOMParser().parseFromString(String(html), 'text/html');
+  doc.querySelectorAll('script,style,head,meta,link').forEach(n => n.remove());
+
+  const lines = [];
+  const blockTags = new Set(['P','DIV','H1','H2','H3','H4','H5','H6','LI','TR','BR','SECTION','ARTICLE','BLOCKQUOTE','PRE','TD','TH']);
+
+  const walk = (node) => {
+    for (const child of node.childNodes) {
+      if (child.nodeType === 3) {
+        const t = child.textContent.replace(/\s+/g, ' ');
+        if (t.trim()) lines.push(t);
+        continue;
+      }
+      if (child.nodeType !== 1) continue;
+      const tag = child.tagName;
+
+      if (tag === 'TABLE') {
+        const rows = [];
+        child.querySelectorAll('tr').forEach(tr => {
+          const cells = [];
+          tr.querySelectorAll('th,td').forEach(td => cells.push(td.textContent.replace(/\s+/g, ' ').trim()));
+          if (cells.length) rows.push(cells.join('\t'));
+        });
+        if (rows.length) lines.push('', rows.join('\n'), '');
+        continue;
+      }
+      if (tag === 'UL' || tag === 'OL') {
+        child.querySelectorAll('li').forEach((li, i) => {
+          lines.push((tag === 'OL' ? (i + 1) + '. ' : '') + li.textContent.replace(/\s+/g, ' ').trim());
+        });
+        lines.push('');
+        continue;
+      }
+      if (/^H[1-6]$/.test(tag)) {
+        lines.push('', child.textContent.replace(/\s+/g, ' ').trim(), '');
+        continue;
+      }
+      if (tag === 'BR') { lines.push(''); continue; }
+      if (blockTags.has(tag)) {
+        const t = child.textContent.replace(/\s+/g, ' ').trim();
+        lines.push(t, '');
+        continue;
+      }
+      walk(child);
+    }
+  };
+  walk(doc.body || doc.documentElement);
+
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+if (typeof window !== 'undefined') {
+  window.WFPDocxRead = {
+    readDocx, readPlainText, detectFormat, rtfToText, htmlToText,
+    getParagraphText, extractTable, inferRole, MIME_BY_EXT
+  };
+}
+
+
+/* ================= ui.js ================= */
+/* ============================================================
+ * ui.js — 界面逻辑：输入 → 解析 → 预览 → 导出
+ * ============================================================ */
+
+(function () {
+  const D = window.WFPDefaults;
+  const P = window.WFPParser;
+  const X = window.WFPDocx;
+  const R = window.WFPDocxRead;
+  const Zip = window.WFPZip;
+
+  const SCHEME_KEY = 'textformatter.schemes.v1';
+  const LAST_KEY = 'textformatter.last.v1';
+
+  /** 当前配置 */
+  let cfg = Object.assign({}, D.DEFAULT_CONFIG);
+  let currentPreset = '党政机关公文格式';
+  let blocks = [];
+  let loadedImages = {};      // name → Uint8Array（重新排版时保留的图片）
+  let imageMeta = {};         // name → {w,h,mime}（图片原始尺寸，避免重新排版后尺寸丢失）
+  let pendingFiles = [];      // 待处理文件
+
+  const $ = (id) => document.getElementById(id);
+
+  /* ---------------- 状态栏 ---------------- */
+
+  function status(text, kind) {
+    $('stText').textContent = text;
+    const dot = $('stDot');
+    dot.className = 'dot' + (kind ? ' ' + kind : '');
+  }
+
+  function setStats(txt) { $('stStats').textContent = txt || ''; }
+
+  function fail(msg) {
+    status(msg, 'err');
+  }
+  function ok(msg) {
+    status(msg, 'ok');
+  }
+
+  /* ---------------- 配置读写 ---------------- */
+
+  function cfgValue(key) {
+    const v = cfg[key];
+    return v === undefined ? '' : v;
+  }
+
+  /** 把配置写进所有 [data-cfg] 控件 */
+  function syncControlsFromCfg() {
+    document.querySelectorAll('[data-cfg]').forEach((el) => {
+      const key = el.dataset.cfg;
+      const v = cfgValue(key);
+      if (el.type === 'checkbox') el.checked = v === true || v === 'true';
+      else if (el.tagName === 'SELECT' && el.dataset.flag === 'bool') el.value = String(v === true);
+      else el.value = v;
+    });
+
+    // 快速面板
+    setVal('q_body_font', cfg.body_font);
+    setVal('q_body_size', cfg.body_size);
+    setVal('q_indent', cfg.first_line_indent_chars);
+    setVal('q_margin', cfg.margin_top);
+    setVal('q_title_font', cfg.title_font);
+    setVal('q_title_size', cfg.title_size);
+    setVal('q_h1_font', cfg.h1_font);
+    setVal('q_h1_size', cfg.h1_size);
+    setVal('q_h2_font', cfg.h2_font);
+    setVal('q_h2_size', cfg.h2_size);
+    setVal('c_force_a4', cfg.force_a4 !== false, true);
+    setVal('c_enable_header', cfg.enable_header === true, true);
+    setVal('c_page_number_start', cfg.page_number_start);
+
+    // 行距快速选择
+    const lsSel = $('q_line_spacing');
+    const lsKey = cfg.line_spacing_rule + ':' + cfg.line_spacing_value;
+    const match = Array.from(lsSel.options).find(o => o.value === lsKey);
+    lsSel.value = match ? lsKey : lsSel.options[0].value;
+
+    renderFontTable();
+  }
+
+  function setVal(id, v, isCheck) {
+    const el = $(id);
+    if (!el) return;
+    if (isCheck) el.checked = !!v; else el.value = v;
+  }
+
+  /** 读取单个控件 → cfg */
+  function readControl(el) {
+    const key = el.dataset.cfg;
+    if (!key) return;
+    if (el.type === 'checkbox') cfg[key] = el.checked;
+    else if (el.type === 'number') {
+      const n = parseFloat(el.value);
+      cfg[key] = isNaN(n) ? 0 : n;
+    } else if (el.tagName === 'SELECT' && el.dataset.bool === '1') {
+      cfg[key] = el.value === 'true';
+    } else {
+      cfg[key] = el.value;
+    }
+  }
+
+  /* ---------------- 字体表（逐级） ---------------- */
+
+  const FONT_ROLES = [
+    ['title', '主标题'], ['subtitle', '副标题'], ['salutation', '主送机关'],
+    ['h1', '一级标题'], ['h2', '二级标题'], ['h3', '三级标题'], ['h4', '四级标题'],
+    ['body', '正文'], ['attachment', '附件标记'],
+    ['table_caption', '表标题'], ['figure_caption', '图标题']
+  ];
+
+  function renderFontTable() {
+    const host = $('fontTable');
+    if (!host) return;
+    let html = '';
+    for (const [role, label] of FONT_ROLES) {
+      html += '<div class="grid2" style="margin-bottom:7px">';
+      html += '<div class="field"><span>' + label + '字体</span>' +
+        '<select data-cfg="' + role + '_font" data-role="' + role + '"></select></div>';
+      html += '<div class="field"><span>' + label + '字号</span>' +
+        '<select data-cfg="' + role + '_size" data-role="' + role + '"></select></div>';
+      html += '</div>';
+    }
+    // 页眉/页码字体
+    html += '<hr><div class="grid2">';
+    html += '<div class="field"><span>页码字体</span><select data-cfg="page_number_font"></select></div>';
+    html += '<div class="field"><span>页码字号</span><select data-cfg="page_number_size"></select></div>';
+    html += '<div class="field"><span>页眉字体</span><select data-cfg="header_font"></select></div>';
+    html += '<div class="field"><span>页眉字号</span><select data-cfg="header_size"></select></div>';
+    html += '</div>';
+    host.innerHTML = html;
+
+    // 填充 select
+    host.querySelectorAll('select').forEach(sel => {
+      const key = sel.dataset.cfg;
+      if (/_size$/.test(key)) {
+        sel.innerHTML = sizeOptionsHtml(cfg[key]);
+        sel.value = cfg[key];
+      } else {
+        sel.innerHTML = fontOptionsHtml();
+        sel.value = cfg[key];
+      }
+      sel.addEventListener('change', () => {
+        cfg[key] = /_size$/.test(key) ? parseFloat(sel.value) : sel.value;
+        schedulePreview();
+        syncChips();
+      });
+    });
+  }
+
+  function fontOptionsHtml() {
+    return D.PRESET_FONT_OPTIONS.map(f =>
+      '<option value="' + escapeHtml(f) + '">' + escapeHtml(f) + '</option>').join('');
+  }
+
+  function sizeOptionsHtml(current) {
+    const sizes = [42, 36, 26, 24, 22, 18, 16, 15, 14, 12, 10.5, 9, 8, 7.5];
+    const names = { 42: '初号', 36: '小初', 26: '一号', 24: '小一', 22: '二号', 18: '小二',
+                    16: '三号', 15: '小三', 14: '四号', 12: '小四', 10.5: '五号', 9: '小五',
+                    8: '六号', 7.5: '小六' };
+    let html = sizes.map(s =>
+      '<option value="' + s + '">' + s + ' pt' + (names[s] ? ' · ' + names[s] : '') + '</option>').join('');
+    if (current != null && !sizes.includes(Number(current))) {
+      html = '<option value="' + current + '">' + current + ' pt</option>' + html;
+    }
+    return html;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ---------------- 初始化控件 ---------------- */
+
+  function buildStaticSelects() {
+    // 空行模式
+    const blm = $('c_blank_line_mode');
+    blm.innerHTML = D.BLANK_LINE_MODE_OPTIONS.map(o =>
+      '<option value="' + o.value + '">' + o.label + '</option>').join('');
+    blm.value = cfg.blank_line_mode;
+    blm.addEventListener('change', () => { cfg.blank_line_mode = blm.value; runParse(); });
+
+    // 行距类型
+    const lsr = document.querySelector('[data-cfg="line_spacing_rule"]');
+    lsr.innerHTML = D.LINE_SPACING_RULE_OPTIONS.map(o =>
+      '<option value="' + o.value + '">' + o.label + '</option>').join('');
+
+    // 编号样式
+    const ns = document.querySelector('[data-cfg="number_style"]');
+    ns.innerHTML = D.NUMBER_STYLE_OPTIONS.map(o =>
+      '<option value="' + o.value + '">' + o.label + '</option>').join('');
+
+    // 页码格式 / 位置
+    const pnf = $('c_page_number_format');
+    pnf.innerHTML = D.PAGE_NUMBER_FORMAT_OPTIONS.map(o =>
+      '<option value="' + o.value + '">' + o.label + '</option>').join('');
+    const pnp = $('c_page_number_position');
+    pnp.innerHTML = D.PAGE_NUMBER_POSITION_OPTIONS.map(o =>
+      '<option value="' + o.value + '">' + o.label + '</option>').join('');
+
+    // 快速面板字体
+    ['q_body_font', 'q_title_font', 'q_h1_font', 'q_h2_font'].forEach(id => {
+      const el = $(id);
+      el.innerHTML = fontOptionsHtml();
+    });
+
+    // 快速面板字号
+    ['q_body_size', 'q_title_size', 'q_h1_size', 'q_h2_size'].forEach(id => {
+      const el = $(id);
+      el.innerHTML = sizeOptionsHtml(cfg[id.replace('q_', '').replace('_font', '') + '_size']);
+    });
+
+    // 行距快速选项
+    const qls = $('q_line_spacing');
+    const quickSpacing = [
+      ['single:1', '单倍行距'],
+      ['onehalf:1.5', '1.5 倍行距'],
+      ['double:2', '2 倍行距'],
+      ['fixed:28', '固定值 28 磅（公文标准）'],
+      ['fixed:22', '固定值 22 磅'],
+      ['fixed:20', '固定值 20 磅'],
+      ['atLeast:20', '最小值 20 磅'],
+      ['multiple:1.25', '多倍 1.25']
+    ];
+    qls.innerHTML = quickSpacing.map(([v, l]) =>
+      '<option value="' + v + '">' + l + '</option>').join('');
+
+    // 规范方案
+    const ps = $('presetSel');
+    ps.innerHTML = Object.keys(D.PRESETS).map(k =>
+      '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>').join('');
+
+    // 英文段落布尔 select
+    const ucef = document.querySelector('[data-cfg="use_custom_english_font"]');
+    if (ucef) ucef.dataset.bool = '1';
+  }
+
+  /* ---------------- 事件绑定 ---------------- */
+
+  function bind() {
+    // tabs
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
+        document.querySelectorAll('.pane').forEach(x => x.classList.add('hide'));
+        t.classList.add('on');
+        $('pane-' + t.dataset.tab).classList.remove('hide');
+      });
+    });
+
+    // 折叠区
+    document.querySelectorAll('.collapse-h').forEach(h => {
+      h.addEventListener('click', () => {
+        h.classList.toggle('off');
+        const body = $('b' + h.id.slice(1));
+        if (body) body.classList.toggle('hide');
+      });
+    });
+    // 默认展开前两个
+    ['hPage', 'hFont'].forEach(id => $(id).classList.remove('off'));
+
+    // 输入
+    $('src').addEventListener('input', debounce(runParse, 260));
+
+    ['c_detect_headings', 'c_detect_title', 'c_detect_tables',
+     'c_enable_attachment_formatting', 'c_strip_markdown', 'c_normalize_punctuation'
+    ].forEach(id => {
+      $(id).addEventListener('change', () => {
+        cfg[id.slice(2)] = $(id).checked;
+        runParse();
+      });
+    });
+
+    // 所有 data-cfg 控件
+    document.querySelectorAll('[data-cfg]').forEach(el => {
+      if (el.dataset.role) return;    // 字体表已单独绑定
+      const evt = (el.tagName === 'SELECT' || el.type === 'checkbox') ? 'change' : 'input';
+      el.addEventListener(evt, () => {
+        readControl(el);
+        if (/^page_number_(format|position)$/.test(el.dataset.cfg)) syncPageNumberControls();
+        schedulePreview();
+        syncChips();
+        saveLast();
+      });
+    });
+
+    // 快速面板
+    $('q_body_font').addEventListener('change', e => { cfg.body_font = e.target.value; afterQuick(); });
+    $('q_body_size').addEventListener('change', e => { cfg.body_size = parseFloat(e.target.value); afterQuick(); });
+    $('q_title_font').addEventListener('change', e => { cfg.title_font = e.target.value; afterQuick(); });
+    $('q_title_size').addEventListener('change', e => { cfg.title_size = parseFloat(e.target.value); afterQuick(); });
+    $('q_h1_font').addEventListener('change', e => { cfg.h1_font = e.target.value; afterQuick(); });
+    $('q_h1_size').addEventListener('change', e => { cfg.h1_size = parseFloat(e.target.value); afterQuick(); });
+    $('q_h2_font').addEventListener('change', e => { cfg.h2_font = e.target.value; afterQuick(); });
+    $('q_h2_size').addEventListener('change', e => { cfg.h2_size = parseFloat(e.target.value); afterQuick(); });
+    $('q_indent').addEventListener('change', e => { cfg.first_line_indent_chars = parseFloat(e.target.value) || 0; afterQuick(); });
+    $('q_margin').addEventListener('change', e => {
+      const v = parseFloat(e.target.value) || 0;
+      cfg.margin_top = cfg.margin_bottom = cfg.margin_left = cfg.margin_right = v;
+      syncControlsFromCfg(); afterQuick();
+    });
+    $('q_line_spacing').addEventListener('change', e => {
+      const [rule, val] = e.target.value.split(':');
+      cfg.line_spacing_rule = rule;
+      cfg.line_spacing_value = parseFloat(val);
+      syncControlsFromCfg(); afterQuick();
+    });
+
+    // 方案切换
+    $('presetSel').addEventListener('change', e => applyPreset(e.target.value, true));
+
+    // 按钮
+    $('btnRun').addEventListener('click', doExport);
+    $('btnClear').addEventListener('click', () => {
+      $('src').value = '';
+      pendingFiles = [];
+      loadedImages = {};
+      imageMeta = {};
+      $('fileInfo').innerHTML = '';
+      runParse();
+    });
+    $('btnSample').addEventListener('click', () => { $('src').value = SAMPLE; runParse(); });
+    $('btnRefresh').addEventListener('click', () => { runParse(); });
+    $('btnReset').addEventListener('click', () => {
+      cfg = Object.assign({}, D.DEFAULT_CONFIG);
+      syncControlsFromCfg(); afterQuick();
+      ok('已恢复默认设置');
+    });
+
+    $('btnSaveScheme').addEventListener('click', saveSchemeDialog);
+    $('btnManageScheme').addEventListener('click', manageSchemesDialog);
+    $('btnHelp').addEventListener('click', helpDialog);
+    $('btnAbout').addEventListener('click', aboutDialog);
+
+    // 缩放
+    $('zoom').addEventListener('input', e => {
+      const z = e.target.value;
+      $('zoomVal').textContent = z + '%';
+      $('page').style.transform = 'scale(' + (z / 100) + ')';
+    });
+
+    // 文件
+    $('drop').addEventListener('click', () => $('file').click());
+    $('file').addEventListener('change', e => {
+      if (e.target.files.length) handleFiles(Array.from(e.target.files));
+      e.target.value = '';
+    });
+    ['dragenter', 'dragover'].forEach(ev => {
+      $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.add('over'); });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+      $('drop').addEventListener(ev, e => { e.preventDefault(); $('drop').classList.remove('over'); });
+    });
+    $('drop').addEventListener('drop', e => {
+      const fs = Array.from(e.dataTransfer.files || []);
+      if (fs.length) handleFiles(fs);
+    });
+    // 全窗口拖放
+    window.addEventListener('dragover', e => e.preventDefault());
+    window.addEventListener('drop', e => {
+      e.preventDefault();
+      const fs = Array.from(e.dataTransfer.files || []);
+      if (fs.length) handleFiles(fs);
+    });
+
+    // 键盘
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); doExport(); }
+      if (e.key === 'Escape') closeModal();
+    });
+  }
+
+  function afterQuick() { schedulePreview(); syncChips(); saveLast(); }
+
+  function syncPageNumberControls() {
+    const fmt = cfg.page_number_format;
+    $('c_page_number_start').disabled = (fmt === 'none');
+  }
+
+  /* ---------------- 规范方案 ---------------- */
+
+  function applyPreset(name, notify) {
+    const p = D.PRESETS[name];
+    if (!p) return;
+    currentPreset = name;
+    cfg = D.mergeConfig(Object.assign({}, cfg), p);
+    syncControlsFromCfg();
+    schedulePreview();
+    syncChips();
+    if (notify) ok('已套用规范：' + name);
+    saveLast();
+  }
+
+  const PRESET_DESC = {
+    '党政机关公文格式': '依据《党政机关公文格式》GB/T 9704：方正小标宋二号标题、黑体三号一级标题、楷体三号二级标题、仿宋_GB2312 三号正文，行距固定值 28 磅，页边距上 3.7 / 下 3.5 / 左 2.8 / 右 2.6 cm。',
+    '通用报告（宋体）': '常规工作报告排版：黑体标题 + 宋体正文小四，1.5 倍行距，首行缩进 2 字符。适合大多数内部材料。',
+    '论文 / 学术': '学术论文风格：黑体分级标题 + 宋体正文小四，多倍行距 1.25。',
+    '简洁 / 无修饰': '不缩进、单倍行距、无页码，只做层级区分。适合快速整理与二次加工。'
+  };
+
+  function syncChips() {
+    const chip = $('chipPreset');
+    if (chip) chip.textContent = currentPreset;
+    $('presetDesc').textContent = PRESET_DESC[currentPreset] || '';
+  }
+
+  /* ---------------- 文件处理 ---------------- */
+
+  async function handleFiles(files) {
+    pendingFiles = [];
+    loadedImages = {};
+    imageMeta = {};
+    const infos = [];
+
+    for (const f of files) {
+      try {
+        const buf = new Uint8Array(await f.arrayBuffer());
+        const det = R.detectFormat(buf, f.name);
+
+        if (det.kind === 'docx') {
+          const res = await R.readDocx(buf);
+          blocks = res.blocks;
+          loadedImages = res.images || {};
+          // 记录图片原始尺寸与类型：文本往返会丢掉这些信息，导出时从这里恢复
+          imageMeta = {};
+          for (const b of blocks) {
+            if (b.type === 'image' && b.name) {
+              imageMeta[b.name] = { w: b.w || 0, h: b.h || 0, mime: b.mime || '' };
+            }
+          }
+          infos.push({ ok: true, name: f.name, msg: '已读取 .docx（' + blocks.length + ' 个段落块）' + (res.warnings.length ? '，' + res.warnings.join('，') : '') });
+          // 同步到文本框，便于手动修改
+          $('src').value = blocksToText(blocks);
+        } else if (det.kind === 'rtf') {
+          const txt = R.rtfToText(Zip.fromUtf8(buf));
+          $('src').value = txt;
+          infos.push({ ok: true, name: f.name, msg: '已解析 RTF（' + txt.length + ' 字）' });
+        } else if (det.kind === 'html') {
+          const txt = R.htmlToText(Zip.fromUtf8(buf));
+          $('src').value = txt;
+          infos.push({ ok: true, name: f.name, msg: '已解析 HTML（' + txt.length + ' 字）' });
+        } else if (det.kind === 'ole' || det.kind === 'pdf') {
+          infos.push({ ok: false, name: f.name, msg: det.hint });
+          continue;
+        } else {
+          const { text, encoding } = R.readPlainText(buf);
+          $('src').value = text;
+          infos.push({ ok: true, name: f.name, msg: '已读取纯文本（' + text.length + ' 字，' + encoding + '）' });
+        }
+      } catch (err) {
+        infos.push({ ok: false, name: f.name, msg: '读取失败：' + err.message });
+      }
+    }
+
+    $('fileInfo').innerHTML = infos.map(i =>
+      '<div class="' + (i.ok ? 'okbox' : 'errbox') + '"><b>' + escapeHtml(i.name) + '</b><br>' +
+      escapeHtml(i.msg) + '</div>').join('');
+
+    runParse();
+  }
+
+  /** 块数组 → 可编辑文本（用于重新排版场景的忠实还原） */
+  function blocksToText(bs) {
+    const out = [];
+    for (const b of bs) {
+      switch (b.type) {
+        case 'title': out.push(b.text, ''); break;
+        case 'subtitle': out.push(b.text, ''); break;
+        case 'salutation': out.push(b.text, ''); break;
+        case 'heading':
+          out.push('#'.repeat(b.level) + ' ' + b.text, '');
+          break;
+        case 'attachment': case 'table_caption': case 'figure_caption':
+          out.push(b.text, ''); break;
+        case 'table':
+          out.push(b.rows.map(r => r.join('\t')).join('\n'), ''); break;
+        case 'image':
+          out.push('[图片：' + (b.name || '') + ']', ''); break;
+        case 'blank': out.push(''); break;
+        default: out.push(b.text, ''); break;
+      }
+    }
+    return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  /* ---------------- 解析 + 预览 ---------------- */
+
+  let previewTimer = null;
+  function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderPreview, 90);
+  }
+
+  function runParse() {
+    const text = $('src').value;
+    try {
+      if (!text.trim()) {
+        blocks = [];
+        showEmpty(true);
+        setStats('');
+        ok('就绪');
+        return;
+      }
+      blocks = P.parseText(text, cfg);
+      // 保留图片块（重新排版时图片不在文本里）
+      if (Object.keys(loadedImages).length) {
+        // 图片已在 readDocx 时作为块加入，但被 blocksToText 丢弃；此处从缓存重建
+        // 简化策略：图片仅在直接「重新排版」按钮路径保留
+      }
+      renderPreview();
+      const s = P.summarizeBlocks(blocks);
+      setStats('标题 ' + s.title + ' · 副题 ' + s.subtitle + (s.salutation ? ' · 主送 ' + s.salutation : '') +
+        ' · 一~四级 ' + s.h1 + '/' + s.h2 + '/' + s.h3 + '/' + s.h4 +
+        ' · 正文 ' + s.body + ' · 表格 ' + s.table + ' · 题注 ' + s.caption);
+      ok('已解析 ' + blocks.length + ' 个段落块');
+    } catch (err) {
+      fail('解析失败：' + err.message);
+    }
+  }
+
+  function showEmpty(on) {
+    $('emptyTip').style.display = on ? '' : 'none';
+    $('page').style.display = on ? 'none' : '';
+  }
+
+  function renderPreview() {
+    if (!blocks.length) { showEmpty(true); return; }
+    showEmpty(false);
+
+    const page = $('page');
+    const zoom = parseInt($('zoom').value, 10) || 80;
+    page.style.transform = 'scale(' + (zoom / 100) + ')';
+    page.style.setProperty('--padt', cfg.margin_top + 'cm');
+    page.style.setProperty('--padb', cfg.margin_bottom + 'cm');
+    page.style.setProperty('--padl', cfg.margin_left + 'cm');
+    page.style.setProperty('--padr', cfg.margin_right + 'cm');
+
+    // 页眉
+    const hdr = $('pvHeader');
+    if (cfg.enable_header && cfg.header_text) {
+      hdr.style.display = '';
+      hdr.textContent = cfg.header_text.split('\n')[0];
+      hdr.style.textAlign = cfg.header_align || 'center';
+      hdr.style.fontFamily = cfg.header_font;
+      hdr.style.fontSize = (cfg.header_size || 14) + 'pt';
+    } else hdr.style.display = 'none';
+
+    // 页脚
+    const ftr = $('pvFooter');
+    if (cfg.page_number_format !== 'none') {
+      ftr.style.display = '';
+      ftr.textContent = pvPageNumber(cfg.page_number_start);
+      const pos = cfg.page_number_position;
+      ftr.style.textAlign = pos === 'footer_right' ? 'right' : 'center';
+      ftr.style.fontFamily = cfg.page_number_font;
+      ftr.style.fontSize = (cfg.page_number_size || 14) + 'pt';
+    } else ftr.style.display = 'none';
+
+    // 正文
+    $('pvDoc').innerHTML = blocks.map(blockToHtml).join('');
+  }
+
+  function pvPageNumber(start) {
+    const n = parseInt(start, 10) || 1;
+    const fmt = cfg.page_number_format;
+    const pre = cfg.page_number_prefix || '', suf = cfg.page_number_suffix || '';
+    if (fmt === 'chinese') return pre + X.toChineseNumber(n) + suf;
+    if (fmt === 'roman') return pre + X.toRoman(n, true) + suf;
+    return pre + n + suf;
+  }
+
+  function blockToHtml(b) {
+    const ls = previewLineHeight();
+    switch (b.type) {
+      case 'title': {
+        const col = cfg.number_style;
+        return '<p class="blk-title" style="text-align:' + (cfg.title_align || 'center') +
+          ';font-family:' + q(cfg.title_font) + ';font-size:' + cfg.title_size + 'pt;' +
+          'font-weight:' + (roleBold('title') ? '700' : '400') + ';' +
+          'margin:' + pt2em(cfg.title_space_before) + ' 0 ' + pt2em(cfg.title_space_after) + ';' +
+          'line-height:' + fixedLineHeight(cfg.title_line_spacing || 1) + ';">' + escapeHtml(b.text) + '</p>';
+      }
+      case 'subtitle':
+        return '<p style="text-align:center;font-family:' + q(cfg.subtitle_font) +
+          ';font-size:' + cfg.subtitle_size + 'pt;font-weight:' + (roleBold('subtitle') ? '700' : '400') +
+          ';margin:' + pt2em(cfg.title_space_after) + ' 0;line-height:' +
+          fixedLineHeight(cfg.subtitle_line_spacing || 1) + ';">' +
+          escapeHtml(b.text) + '</p>';
+      case 'heading': {
+        const lv = b.level;
+        const font = cfg['h' + lv + '_font'];
+        const size = cfg['h' + lv + '_size'];
+        return '<p class="blk-head" style="font-family:' + q(font) + ';font-size:' + size + 'pt;' +
+          'font-weight:' + (roleBold('h' + lv) ? '700' : '400') + ';' +
+          'margin:' + pt2em(cfg.heading_space_before) + ' 0 ' + pt2em(cfg.heading_space_after) + ';' +
+          'line-height:' + ls + ';">' + escapeHtml(b.text) + '</p>';
+      }
+      case 'salutation':
+        /* 主送机关：顶格、不缩进、左对齐 */
+        return '<p style="text-align:left;font-family:' + q(cfg.salutation_font) +
+          ';font-size:' + cfg.salutation_size + 'pt;font-weight:' + (roleBold('salutation') ? '700' : '400') +
+          ';margin:' + pt2em(cfg.body_space_after) + ' 0;line-height:' + ls + ';">' +
+          escapeHtml(b.text) + '</p>';
+      case 'attachment':
+        return '<p style="font-family:' + q(cfg.attachment_font) + ';font-size:' + cfg.attachment_size +
+          'pt;margin:' + pt2em(cfg.heading_space_before) + ' 0;line-height:' + ls + ';">' +
+          escapeHtml(b.text) + '</p>';
+      case 'table_caption':
+        return '<p class="blk-cap" style="font-family:' + q(cfg.table_caption_font) +
+          ';font-size:' + cfg.table_caption_size + 'pt;font-weight:' + (roleBold('table_caption') ? '700' : '400') +
+          ';">' + escapeHtml(b.text) + '</p>';
+      case 'figure_caption':
+        return '<p class="blk-cap" style="font-family:' + q(cfg.figure_caption_font) +
+          ';font-size:' + cfg.figure_caption_size + 'pt;font-weight:' + (roleBold('figure_caption') ? '700' : '400') +
+          ';">' + escapeHtml(b.text) + '</p>';
+      case 'table': {
+        if (cfg.enable_table_formatting === false) {
+          return b.rows.map(r => '<p class="blk-body" style="font-family:' + q(cfg.table_font) +
+            ';font-size:' + cfg.table_size + 'pt;">' + escapeHtml(r.join('  ')) + '</p>').join('');
+        }
+        let h = '<table style="font-family:' + q(cfg.table_font) + ';font-size:' +
+          cfg.table_size + 'pt;line-height:' + tableLineHeight() + '">';
+        b.rows.forEach((row, ri) => {
+          const isHead = (ri === 0 && cfg.table_header_bold);
+          const tag = isHead ? 'th' : 'td';
+          const cellStyle = isHead
+            ? ' style="font-family:' + q(cfg.table_header_font) + ';font-size:' +
+              (cfg.table_header_size || cfg.table_size) + 'pt;font-weight:700"'
+            : '';
+          h += '<tr>';
+          row.forEach(c => { h += '<' + tag + cellStyle + '>' + escapeHtml(c) + '</' + tag + '>'; });
+          h += '</tr>';
+        });
+        return h + '</table>';
+      }
+      case 'image':
+        return '<p class="blk-cap" style="color:#94a3b8">［图片：' + escapeHtml(b.name || '') + '］</p>';
+      case 'blank': {
+        let h = '';
+        const n = Math.max(1, Math.min(4, b.count || 1));
+        for (let k = 0; k < n; k++) h += '<p class="blk-blank" style="line-height:' + ls + '"></p>';
+        return h;
+      }
+      default:
+        return '<p class="blk-body" style="font-family:' + q(cfg.body_font) + ';font-size:' + cfg.body_size +
+          'pt;text-align:' + bodyAlignCss() + ';' +
+          'text-indent:' + (cfg.first_line_indent_chars || 0) + 'em;line-height:' + ls + ';' +
+          'margin:' + pt2em(cfg.body_space_before) + ' 0 ' + pt2em(cfg.body_space_after) + ';">' +
+          escapeHtml(b.text) + '</p>';
+    }
+  }
+
+  /* 正文对齐：配置里的 both/distribute 映射为 CSS 值 */
+  function bodyAlignCss() {
+    const a = cfg.body_align || 'both';
+    if (a === 'both') return 'justify';
+    if (a === 'distribute') return 'justify-all';
+    return a;
+  }
+
+  /* 标题加粗：与 docx.js 的 roleStyle 保持一致 ——
+     显式配置优先，未配置时沿用内置规则（三/四级与图表题注加粗）。 */
+  function roleBold(role) {
+    const explicit = cfg[role + '_bold'];
+    if (explicit != null && explicit !== '') return explicit === true || explicit === 'true';
+    return role === 'h3' || role === 'h4' || role === 'table_caption' || role === 'figure_caption';
+  }
+
+  /* 标题/副标题行距是「倍率」语义（docx.js 用 multiple 写入），预览同样按倍率 */
+  function fixedLineHeight(mult) {
+    const m = parseFloat(mult) || 1;
+    return (m * 1.3).toFixed(2);
+  }
+
+  /* 表格行距：docx.js 的 tableLineSpacingAttrs 支持 '1.5'/'2.0'/数字 */
+  function tableLineHeight() {
+    const v = String(cfg.table_line_spacing || 'single');
+    if (v === 'single') return '1.3';
+    if (/^[\d.]+$/.test(v)) return (parseFloat(v) * 1.3).toFixed(2);
+    return '1.3';
+  }
+
+  function previewLineHeight() {
+    const rule = cfg.line_spacing_rule;
+    if (rule === 'single') return 1.3;
+    if (rule === 'onehalf') return 1.95;
+    if (rule === 'double') return 2.6;
+    if (rule === 'multiple') return ((parseFloat(cfg.line_spacing_value) || 1) * 1.3).toFixed(2);
+    /* fixed / atLeast：磅值是绝对行高，直接除以正文字号换算成相对行高，
+       与 docx.js 的 w:line=pt2twip(值) w:lineRule=exact 语义一致。 */
+    const size = parseFloat(cfg.body_size) || 12;
+    const pt = parseFloat(cfg.line_spacing_value) || 28;
+    return (pt / size).toFixed(2);
+  }
+
+  function pt2em(pt) {
+    if (!pt) return '0';
+    const size = cfg.body_size || 12;
+    return (pt / size).toFixed(2) + 'em';
+  }
+
+  /* 字体回退链：主字体在本机没装时用近似的公文字体顶上，
+     保证预览里中文字体不会掉回系统默认黑体。
+     注意：返回值会被塞进 style="..." 里，字体名必须用【单引号】包裹 ——
+     用双引号会在第二个 " 处提前闭合 HTML 属性，导致 font-family 之后
+     的所有声明（font-size / line-height / margin / text-indent）被整段丢弃。
+     这正是「预览里看不到二号标题、三号正文、首行缩进」的根因。 */
+  const FONT_FALLBACKS = {
+    '方正小标宋简体': ['方正小标宋_GBK', 'FZXiaoBiaoSong-B05S', '华文中宋', 'STZhongsong'],
+    '方正小标宋_GBK': ['方正小标宋简体', 'FZXiaoBiaoSong-B05S', '华文中宋', 'STZhongsong'],
+    '仿宋_GB2312': ['仿宋', 'FangSong', 'FZFangSong-Z02S', '华文仿宋', 'STFangsong'],
+    '仿宋': ['仿宋_GB2312', 'FangSong', 'FZFangSong-Z02S', 'STFangsong'],
+    '方正仿宋': ['方正仿宋_GBK', '方正仿宋简体', '仿宋_GB2312', '仿宋', 'FangSong'],
+    '方正仿宋_GBK': ['方正仿宋简体', '仿宋_GB2312', '仿宋', 'FangSong'],
+    '楷体_GB2312': ['楷体', 'KaiTi', 'FZKai-Z03S', '华文楷体', 'STKaiti'],
+    '楷体': ['楷体_GB2312', 'KaiTi', 'FZKai-Z03S', 'STKaiti'],
+    '方正楷体': ['方正楷体_GBK', '方正楷体简体', '楷体_GB2312', '楷体', 'KaiTi'],
+    '黑体': ['SimHei', '方正黑体简体', 'FZHei-B01S', '思源黑体', 'Microsoft YaHei'],
+    '方正黑体': ['方正黑体_GBK', '方正黑体简体', 'SimHei', '黑体'],
+    '宋体': ['SimSun', 'NSimSun', '新宋体', '思源宋体'],
+    '新宋体': ['NSimSun', 'SimSun', '宋体'],
+    '华文中宋': ['STZhongsong', '宋体', 'SimSun'],
+    '华文宋体': ['STSong', '宋体', 'SimSun'],
+    '思源宋体': ['Source Han Serif CN', 'Noto Serif CJK SC', '宋体', 'SimSun'],
+    '思源黑体': ['Source Han Sans CN', 'Noto Sans CJK SC', 'Microsoft YaHei'],
+    '微软雅黑': ['Microsoft YaHei UI', 'Microsoft YaHei', 'SimHei']
+  };
+  /* 字体大类：决定最后追加 serif 还是 sans-serif 通用族 */
+  function genericFamily(n) {
+    if (/宋|仿宋|标宋|书宋|楷|隶|舒|魏碑|Song|Kai|Sun|Times|Georgia|Cambria|serif|SimSun|FangSong/i.test(n)) return 'serif';
+    return 'sans-serif';
+  }
+  /* 字体名 → CSS font-family 值（单引号包裹，含回退链 + 通用族兜底） */
+  function q(s) {
+    const n = String(s || '').replace(/['"\\]/g, '').trim();
+    if (!n) return 'inherit';
+    const list = [n].concat(FONT_FALLBACKS[n] || []);
+    return list.map(x => "'" + x + "'").concat(genericFamily(n)).join(', ');
+  }
+
+  /* ---------------- 导出 ---------------- */
+
+  async function doExport() {
+    const text = $('src').value;
+    if (!text.trim() && !blocks.length) {
+      fail('请先输入文本或选择文件');
+      return;
+    }
+    status('正在生成 Word 文档…', 'busy');
+    $('btnRun').disabled = true;
+    try {
+      const bs = blocks.length ? blocks : P.parseText(text, cfg);
+      // 重新贴上图片块
+      const withImages = attachImages(bs);
+
+      const blob = await X.buildDocx(withImages, cfg);
+      const fname = suggestName();
+      downloadBlob(blob, fname);
+      ok('已生成 ' + fname + '（' + fmtSize(blob.size) + '）');
+    } catch (err) {
+      console.error(err);
+      fail('生成失败：' + err.message);
+    } finally {
+      $('btnRun').disabled = false;
+    }
+  }
+
+  function attachImages(bs) {
+    if (!Object.keys(loadedImages).length) return bs;
+    // 文本里若有 [图片：xxx] 占位则替换为图片块
+    const out = [];
+    for (const b of bs) {
+      const m = b.type === 'body' && /^\[图片[：:](.+?)\]$/.exec((b.text || '').trim());
+      if (m) {
+        const key = Object.keys(loadedImages).find(k => k.endsWith('/' + m[1]) || k === m[1]);
+        if (key) {
+          const meta = imageMeta[m[1]] || imageMeta[key] || {};
+          out.push({
+            type: 'image', name: m[1], data: loadedImages[key],
+            w: meta.w, h: meta.h, mime: meta.mime
+          });
+          continue;
+        }
+      }
+      out.push(b);
+    }
+    return out;
+  }
+
+  function suggestName() {
+    const t = blocks.find(b => b.type === 'title');
+    let base = t && t.text ? t.text : (cfg.document_title || '');
+    base = String(base).replace(/[\\/:*?"<>|]/g, '').trim().slice(0, 40);
+    if (!base) base = '排版文档';
+    const d = new Date();
+    const stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    return base + '_' + stamp + '.docx';
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+  }
+
+  function fmtSize(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1024 / 1024).toFixed(2) + ' MB';
+  }
+
+  /* ---------------- 方案管理 ---------------- */
+
+  function loadSchemes() {
+    try { return JSON.parse(localStorage.getItem(SCHEME_KEY) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function saveSchemes(obj) {
+    try { localStorage.setItem(SCHEME_KEY, JSON.stringify(obj)); }
+    catch (e) { alert('保存失败：浏览器不允许本地存储'); }
+  }
+
+  function saveSchemeDialog() {
+    openModal('存为我的方案', 
+      '<div class="field"><span style="width:80px">方案名称</span>' +
+      '<input type="text" id="schemeName" placeholder="例如：财务部月度报告" value="' +
+      escapeHtml(currentPreset + ' 副本') + '"></div>' +
+      '<div class="note">保存当前全部 ' + Object.keys(cfg).length + ' 项设置到浏览器本地。</div>',
+      [
+        { text: '取消', cls: 'ghost', fn: closeModal },
+        { text: '保存', fn: () => {
+          const name = $('schemeName').value.trim();
+          if (!name) { alert('请输入名称'); return; }
+          const all = loadSchemes();
+          all[name] = Object.assign({}, cfg);
+          saveSchemes(all);
+          closeModal();
+          ok('已保存方案：' + name);
+        }}
+      ]);
+  }
+
+  function manageSchemesDialog() {
+    const all = loadSchemes();
+    const names = Object.keys(all);
+    let html = '';
+    if (!names.length) {
+      html = '<div class="note">还没有自定义方案。在「自定义」标签页调好设置后，点「存为我的方案」。</div>';
+    } else {
+      html = names.map(n =>
+        '<div class="scheme"><span class="nm">' + escapeHtml(n) +
+        '<small>' + Object.keys(all[n]).length + ' 项</small></span>' +
+        '<button class="btn ghost sm" data-apply="' + escapeHtml(n) + '">套用</button>' +
+        '<button class="btn ghost sm" data-exp="' + escapeHtml(n) + '">导出</button>' +
+        '<button class="btn ghost sm" data-del="' + escapeHtml(n) + '">删除</button></div>').join('');
+    }
+    html += '<hr><div class="row"><button class="btn ghost sm" id="btnImportScheme">📥 从文件导入方案</button>' +
+            '<input type="file" id="schemeFile" accept=".json" style="display:none"></div>';
+
+    openModal('管理我的方案', html, [{ text: '关闭', cls: 'ghost', fn: closeModal }]);
+
+    $('modalBody').querySelectorAll('[data-apply]').forEach(b => {
+      b.addEventListener('click', () => {
+        const n = b.dataset.apply;
+        cfg = D.mergeConfig(Object.assign({}, D.DEFAULT_CONFIG), all[n]);
+        currentPreset = n;
+        syncControlsFromCfg(); afterQuick(); closeModal();
+        ok('已套用方案：' + n);
+      });
+    });
+    $('modalBody').querySelectorAll('[data-del]').forEach(b => {
+      b.addEventListener('click', () => {
+        const n = b.dataset.del;
+        if (!confirm('确定删除方案「' + n + '」？')) return;
+        const a2 = loadSchemes(); delete a2[n]; saveSchemes(a2);
+        manageSchemesDialog();
+      });
+    });
+    $('modalBody').querySelectorAll('[data-exp]').forEach(b => {
+      b.addEventListener('click', () => {
+        const n = b.dataset.exp;
+        const blob = new Blob([JSON.stringify({ name: n, config: all[n] }, null, 2)],
+          { type: 'application/json' });
+        downloadBlob(blob, '排版方案_' + n + '.json');
+      });
+    });
+    const imp = $('btnImportScheme');
+    if (imp) {
+      imp.addEventListener('click', () => $('schemeFile').click());
+      $('schemeFile').addEventListener('change', async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        try {
+          const txt = await f.text();
+          const obj = JSON.parse(txt);
+          const data = obj.config || obj;
+          const nm = obj.name || f.name.replace(/\.json$/i, '');
+          const a2 = loadSchemes(); a2[nm] = data; saveSchemes(a2);
+          manageSchemesDialog();
+          ok('已导入方案：' + nm);
+        } catch (err) { alert('导入失败：' + err.message); }
+      });
+    }
+  }
+
+  /* ---------------- 模态框 ---------------- */
+
+  let modalButtons = [];
+  function openModal(title, bodyHtml, buttons) {
+    $('modalTitle').textContent = title;
+    $('modalBody').innerHTML = bodyHtml;
+    const foot = $('modalFoot');
+    foot.innerHTML = '';
+    modalButtons = buttons || [];
+    modalButtons.forEach((b, i) => {
+      const el = document.createElement('button');
+      el.className = 'btn sm ' + (b.cls || '');
+      el.textContent = b.text;
+      el.addEventListener('click', b.fn);
+      foot.appendChild(el);
+    });
+    $('mask').classList.add('on');
+  }
+  function closeModal() { $('mask').classList.remove('on'); }
+
+  function helpDialog() {
+    openModal('使用说明',
+      '<h4 style="margin-top:0">最简单用法（三步）</h4>' +
+      '<ol style="line-height:2;padding-left:20px">' +
+      '<li>把没有格式的文字<b>粘贴</b>到左边，或把 <b>.txt / .md / .docx</b> 文件拖进来。</li>' +
+      '<li>在「② 规范」里选一个规范（默认就是党政机关公文格式）。</li>' +
+      '<li>点下面的<b>「一键排版 → 生成 Word」</b>，文件自动下载。</li>' +
+      '</ol>' +
+      '<h4>它会自动做什么</h4>' +
+      '<ul style="line-height:1.9;padding-left:20px">' +
+      '<li>认出一级标题「一、」、二级「（一）」、三级「1.」、四级「（1）」</li>' +
+      '<li>把第一段当主标题居中加大，第二段当副标题</li>' +
+      '<li>正文自动首行缩进 2 字符、两端对齐</li>' +
+      '<li>制表符或 <kbd>|</kbd> 分隔的行自动变成真表格</li>' +
+      '<li>英文逗号、引号、括号自动转成中文标点</li>' +
+      '<li>Markdown 标记（<kbd>**</kbd>、<kbd>#</kbd>、<kbd>-</kbd>）自动剥离</li>' +
+      '<li>加页码、页眉、大纲级别（Word 里能一键生成目录）</li>' +
+      '<li>重新排版已有 <b>.docx</b> 时，<b>图片原样保留</b>（位置与大小不变）</li>' +
+      '</ul>' +
+      '<h4>支持的文件</h4>' +
+      '<div class="note">直接读：<b>.txt .md .docx .rtf .html</b>　·　需先转换：<b>.doc .wps</b>（见下）</div>' +
+      '<h4>关于 .doc / .wps</h4>' +
+      '<div class="warnbox">这两种是 Word 97-2003 的<b>二进制专有格式</b>，浏览器无法解析。' +
+      '请在 Word 或 WPS 里打开后，「另存为」选择 <b>.docx</b>，再拖进来即可。</div>' +
+      '<h4>快捷操作</h4>' +
+      '<div class="note"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 直接生成 Word　·　<kbd>Esc</kbd> 关闭弹窗</div>' +
+      '<h4>隐私</h4>' +
+      '<div class="okbox">整个工具是单个 HTML 文件，<b>不联网、不上传</b>。' +
+      '所有文字处理都在你自己的浏览器里完成。</div>',
+      [{ text: '知道了', fn: closeModal }]);
+  }
+
+  function aboutDialog() {
+    openModal('关于',
+      '<p style="line-height:1.9">一个把<b>无格式文本</b>整理成规范 Word 文档的小工具。' +
+      '参照 Word Formatter Pro 的功能设计，重新实现为<b>零安装、零依赖的单文件网页</b>。</p>' +
+      '<hr><div class="note">' +
+      '• 无外部依赖：ZIP 读写、OOXML 生成、文本解析全部内置<br>' +
+      '• 不联网：不发起任何网络请求<br>' +
+      '• 纯前端：数据不出本机<br>' +
+      '• 配置项：' + Object.keys(cfg).length + ' 项' +
+      '</div>',
+      [{ text: '关闭', cls: 'ghost', fn: closeModal }]);
+  }
+
+  /* ---------------- 本地记忆 ---------------- */
+
+  function saveLast() {
+    try { localStorage.setItem(LAST_KEY, JSON.stringify({ cfg, preset: currentPreset })); }
+    catch (e) { /* ignore */ }
+  }
+  function loadLast() {
+    try {
+      const s = JSON.parse(localStorage.getItem(LAST_KEY) || 'null');
+      if (s && s.cfg) { cfg = D.mergeConfig(Object.assign({}, D.DEFAULT_CONFIG), s.cfg); currentPreset = s.preset || currentPreset; }
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ---------------- 工具 ---------------- */
+
+  function debounce(fn, ms) {
+    let t = null;
+    return function () {
+      clearTimeout(t);
+      t = setTimeout(fn, ms);
+    };
+  }
+
+  const SAMPLE = [
+    '关于进一步加强信息化建设工作的通知',
+    '各部门、各直属单位：',
+    '',
+    '为深入贯彻落实上级关于数字化转型的决策部署，进一步提升我单位信息化建设水平，现将有关事项通知如下。',
+    '',
+    '一、总体要求',
+    '',
+    '（一）指导思想',
+    '',
+    '坚持以需求为导向、以应用为核心，统筹推进基础设施、业务系统与数据资源的协调发展。',
+    '',
+    '（二）基本原则',
+    '',
+    '1. 统一规划。避免重复建设，确保系统互联互通。',
+    '',
+    '2. 分步实施。按照轻重缓急，有序推进各项任务。',
+    '',
+    '二、重点任务',
+    '',
+    '（一）完善基础设施',
+    '',
+    '加快网络升级改造，提升带宽保障能力。',
+    '',
+    '表1  重点任务分工表',
+    '序号\t任务内容\t责任部门\t完成时限',
+    '1\t网络升级改造\t信息中心\t2026年6月',
+    '2\t业务系统整合\t业务处\t2026年9月',
+    '3\t数据资源目录编制\t综合处\t2026年12月',
+    '',
+    '（二）强化安全保障',
+    '',
+    '落实网络安全责任制，定期开展风险评估与应急演练。',
+    '',
+    '三、工作要求',
+    '',
+    '各单位要高度重视，明确专人负责，确保各项任务按期完成。',
+    '',
+    '附件：重点任务分工表'
+  ].join('\n');
+
+  /* ---------------- 启动 ---------------- */
+
+  function init() {
+    // 检测浏览器能力
+    if (!Zip || !Zip.HAS_COMPRESSION) {
+      console.warn('浏览器不支持 CompressionStream，将使用无压缩 ZIP（文件略大但完全可用）');
+    }
+
+    loadLast();
+    buildStaticSelects();
+    // data-cfg 控件先填充 select 选项（字体类）
+    document.querySelectorAll('select[data-cfg$="_font"], select[data-cfg="table_font"], select[data-cfg="table_header_font"], select[data-cfg="english_font"]').forEach(sel => {
+      if (!sel.options.length) sel.innerHTML = fontOptionsHtml();
+    });
+    syncControlsFromCfg();
+    syncChips();
+    syncPageNumberControls();
+    bind();
+
+    // 页码控件绑定
+    ['c_page_number_format', 'c_page_number_position'].forEach(id => {
+      $(id).addEventListener('change', () => {
+        cfg[id.slice(2)] = $(id).value;
+        syncPageNumberControls();
+        schedulePreview();
+      });
+    });
+    $('c_page_number_start').addEventListener('input', () => {
+      cfg.page_number_start = parseInt($('c_page_number_start').value, 10) || 1;
+      schedulePreview();
+    });
+    $('c_header_text').addEventListener('input', () => {
+      cfg.header_text = $('c_header_text').value;
+      schedulePreview();
+    });
+    $('c_enable_header').addEventListener('change', () => {
+      cfg.enable_header = $('c_enable_header').checked;
+      schedulePreview();
+    });
+    $('c_force_a4').addEventListener('change', () => {
+      cfg.force_a4 = $('c_force_a4').checked;
+      schedulePreview();
+    });
+
+    status('就绪 · 粘贴文本或拖入文件即可开始');
+    runParse();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
+
+</script>
+</body>
+</html>
